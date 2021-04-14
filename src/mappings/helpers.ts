@@ -202,6 +202,9 @@ export function getAcoTokenSituation(aco: Bytes, account: Bytes): ACOTokenSituat
     acoTokenSituation.collateralAmount = ZERO_BD
     acoTokenSituation.assignableCollateral = ZERO_BD
     acoTokenSituation.unassignableCollateral = ZERO_BD
+    acoTokenSituation.exercisedTokens = ZERO_BD
+    acoTokenSituation.exercisedPayment = ZERO_BD
+    acoTokenSituation.exerciseFee = ZERO_BD
     acoTokenSituation.save()
   }
   return acoTokenSituation
