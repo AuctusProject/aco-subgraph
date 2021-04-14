@@ -231,7 +231,6 @@ function handleSwapOnZrxOrOtc(tokenAmount: BigDecimal, aco: ACOToken, event: Tra
     if (event.transaction.to.toHexString() == ZRX_EXCHANGE_ADDRESS
       || event.transaction.to.toHexString() == WRITER_ADDRESS) {
       swapType = "ZRX"
-      swapToken = getToken(Address.fromString(aco.strikeAsset)) as Token
       let input = event.transaction.input.toHexString()
       let method = null as string
       let maker = null as Bytes
@@ -254,14 +253,17 @@ function handleSwapOnZrxOrOtc(tokenAmount: BigDecimal, aco: ACOToken, event: Tra
         }
       }
       if (maker != null) {
-        let search = maker.toHexString().substring(2) as string
-        let index = input.indexOf(search)
-        let val1 = BigInt.fromString("0x" + input.substring(index + 232, index + 296))
-        let val2 = BigInt.fromString("0x" + input.substring(index + 296, index + 360))
+        let searchValue = maker.toHexString().substring(2) as string
+        let indexValue = input.indexOf(searchValue)
+        let indexToken = input.indexOf("f47261b0000000000000000000000000")
+        let val1 = BigInt.fromString("0x" + input.substring(indexValue + 232, indexValue + 296))
+        let val2 = BigInt.fromString("0x" + input.substring(indexValue + 296, indexValue + 360))
         if (method == "8bc8efb3") {
           swapPaidAmount = event.params.value.times(val2).div(val1)
+          swapToken = getToken(Address.fromString("0x" + input.substring(indexToken + 224, indexToken + 264))) as Token
         } else if (method == "a6c3bf33") {
           swapPaidAmount = event.params.value.times(val1).div(val2)
+          swapToken = getToken(Address.fromString("0x" + input.substring(indexToken + 32, indexToken + 72))) as Token
         }
       }
     } else if (event.transaction.to.toHexString() == ACO_OTC_V1_ADDRESS
