@@ -1,0 +1,136 @@
+type Token @entity {
+  id: ID!
+  symbol: String!
+  name: String!
+  decimals: BigInt!
+}
+
+type ACOToken @entity {
+  id: ID!
+  underlying: Token!
+  strikeAsset: Token!
+  collateral: Token!
+  symbol: String!
+  name: String!
+  decimals: BigInt!
+  isCall: Boolean!
+  strikePrice: BigDecimal!
+  expiryTime: BigInt!
+  totalSupply: BigDecimal!
+  fee: BigDecimal!
+  feeDestination: Bytes!
+  maxExercisedAccounts: BigInt
+  creator: Bytes
+  implementation: Bytes!
+  situation: ACOTokenSituation!
+  tx: Transaction!
+  mintsCount: BigInt!
+  burnsCount: BigInt!
+  exercisesCount: BigInt!
+  accountsCount: BigInt!
+  swapsCount: BigInt!
+  mints: [Mint!]! @derivedFrom(field: "aco")
+  burns: [Burn!]! @derivedFrom(field: "aco")
+  exercises: [Exercise!]! @derivedFrom(field: "aco")
+  accounts: [Account!]! @derivedFrom(field: "aco")
+  swaps: [Swap!]! @derivedFrom(field: "aco")
+}
+
+type ACOTokenSituation @entity {
+  id: ID!
+  collateralizedTokens: BigDecimal!
+  assignableTokens: BigDecimal!
+  unassignableTokens: BigDecimal!
+  collateralAmount: BigDecimal!
+  assignableCollateral: BigDecimal!
+  unassignableCollateral: BigDecimal!
+  exercisedTokens: BigDecimal!
+  exercisedPayment: BigDecimal!
+  exerciseFee: BigDecimal!
+}
+
+type Mint @entity {
+  id: ID!
+  aco: ACOToken!
+  account: Bytes!
+  collateralAmount: BigDecimal!
+  tokenAmount: BigDecimal!
+  tx: Transaction!
+}
+
+type Burn @entity {
+  id: ID!
+  aco: ACOToken!
+  account: Bytes!
+  collateralAmount: BigDecimal!
+  tokenAmount: BigDecimal!
+  tx: Transaction!
+}
+
+type Exercise @entity {
+  id: ID!
+  aco: ACOToken!
+  account: Bytes!
+  paidAmount: BigDecimal!
+  tokenAmount: BigDecimal!
+  tx: Transaction!
+  exercisedAccountsCount: BigInt!
+  exercisedAccounts: [ExercisedAccount!]! @derivedFrom(field: "exercise")
+}
+
+type ExercisedAccount @entity {
+  id: ID!
+  exercise: Exercise!
+  account: Bytes!
+  paymentReceived: BigDecimal!
+  exercisedTokens: BigDecimal!
+}
+
+type Account @entity {
+  id: ID!
+  aco: ACOToken!
+  balance: BigDecimal!
+  situation: ACOTokenSituation!
+}
+
+type Swap @entity {
+  id: ID!
+  aco: ACOToken!
+  seller: Bytes!
+  buyer: Bytes!
+  taker: Bytes!
+  type: SwapType!
+  paymentToken: Token!
+  paymentAmount: BigDecimal!
+  acoAmount: BigDecimal!
+  tx: Transaction!
+}
+
+enum SwapType {
+  ZRX
+  Pool
+  OTC
+}
+
+type Transaction @entity {
+  id: ID!
+  timestamp: BigInt!
+  block: BigInt!
+}
+
+type ACOPoolFactory2 @entity {
+  id: ID!
+}
+
+type ACOPool2 @entity {
+  id: ID!
+  underlying: Token!
+  strikeAsset: Token!
+  collateral: Token!
+  symbol: String!
+  name: String!
+  decimals: BigInt!
+  isCall: Boolean!
+  tx: Transaction!
+  implementation: Bytes!
+}

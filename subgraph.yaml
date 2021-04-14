@@ -1,0 +1,125 @@
+specVersion: 0.0.2
+description: Auctus Options is a decentralized non-custodial protocol for options.
+repository: https://github.com/AuctusProject/aco-subgraph
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: ACOFactory
+    network: mainnet
+    source:
+      address: '0x176b98ab38d1aE8fF3F30bF07f9B93E26F559C17'
+      abi: ACOFactory
+      startBlock: 10104891
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      file: ./src/mappings/acoFactory.ts
+      entities:
+        - ACOToken
+        - Token
+        - Transaction
+        - ACOTokenSituation
+        - ACOPoolFactory2
+        - ACOPool2
+      abis:
+        - name: ACOFactory
+          file: ./abis/ACOFactory.json
+        - name: ACOToken
+          file: ./abis/ACOToken.json
+        - name: ACOPoolFactory2
+          file: ./abis/ACOPoolFactory2.json
+        - name: ACOPool2
+          file: ./abis/ACOPool2.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+      eventHandlers:
+        - event: NewAcoToken(indexed address,indexed address,indexed bool,uint256,uint256,address,address)
+          handler: handleNewACODeprecated
+        - event: NewAcoTokenData(indexed address,indexed address,indexed bool,uint256,uint256,address,address,address)
+          handler: handleNewACO
+templates:
+  - kind: ethereum/contract
+    name: ACOToken
+    network: mainnet
+    source:
+      abi: ACOToken
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      file: ./src/mappings/acoToken.ts
+      entities:
+        - ACOToken
+        - Token
+        - Transaction
+        - ACOTokenSituation
+      abis:
+        - name: ACOFactory
+          file: ./abis/ACOFactory.json
+        - name: ACOToken
+          file: ./abis/ACOToken.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+      eventHandlers:
+        - event: Assigned(indexed address,indexed address,uint256,uint256)
+          handler: handleExerciseAssignment
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+        - event: TransferCollateralOwnership(indexed address,indexed address,uint256)
+          handler: handleTransferCollateralOwnership
+        - event: CollateralDeposit(indexed address,uint256)
+          handler: handleMint
+        - event: CollateralWithdraw(indexed address,indexed address,uint256,uint256)
+          handler: handleCollateralWithdraw
+  - kind: ethereum/contract
+    name: ACOPoolFactory2
+    network: mainnet
+    source:
+      abi: ACOPoolFactory2
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      file: ./src/mappings/acoPoolFactory.ts
+      entities:
+        - ACOPoolFactory2
+        - ACOPool2
+        - Token
+        - Transaction
+      abis:
+        - name: ACOPoolFactory2
+          file: ./abis/ACOPoolFactory2.json
+        - name: ACOPool2
+          file: ./abis/ACOPool2.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+      eventHandlers:
+        - event: NewAcoPool(indexed address,indexed address,indexed bool,address,address)
+          handler: handleNewAcoPool
+  - kind: ethereum/contract
+    name: ACOPool2
+    network: mainnet
+    source:
+      abi: ACOPool2
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      file: ./src/mappings/acoPool.ts
+      entities:
+        - ACOPool2
+        - Token
+        - ACOToken
+        - Transaction
+      abis:
+        - name: ACOToken
+          file: ./abis/ACOToken.json
+        - name: ACOPool2
+          file: ./abis/ACOPool2.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+      eventHandlers:
+        - event: Swap(indexed address,indexed address,uint256,uint256,uint256,uint256,uint256)
+          handler: handlePoolSwap
