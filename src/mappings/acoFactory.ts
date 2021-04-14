@@ -48,7 +48,7 @@ export function handleNewACO(event: NewAcoTokenData): void {
 
 function createACOPoolFactoryWithNecessary(event: ethereum.Event): void {
   let acoPoolFactory = ACOPoolFactory2.load(ACO_POOL_FACTORY_ADDRESS) as ACOPoolFactory2
-  if (acoPoolFactory == null && event.block.number >= BigInt.fromString(ACO_POOL_START.toString())) {
+  if (acoPoolFactory == null && event.block.number.ge(BigInt.fromString(ACO_POOL_START.toString()))) {
     acoPoolFactory = new ACOPoolFactory2(ACO_POOL_FACTORY_ADDRESS)
     acoPoolFactory.save()
   }
