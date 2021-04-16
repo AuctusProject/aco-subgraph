@@ -22,7 +22,6 @@ dataSources:
         - Transaction
         - ACOTokenSituation
         - ACOPoolFactory2
-        - ACOPool2
       abis:
         - name: ACOFactory
           file: ./abis/ACOFactory.json
@@ -30,8 +29,6 @@ dataSources:
           file: ./abis/ACOToken.json
         - name: ACOPoolFactory2
           file: ./abis/ACOPoolFactory2.json
-        - name: ACOPool2
-          file: ./abis/ACOPool2.json
         - name: ERC20
           file: ./abis/ERC20.json
       eventHandlers:
@@ -55,6 +52,12 @@ templates:
         - Token
         - Transaction
         - ACOTokenSituation
+        - ACOSwap
+        - Burn
+        - Mint
+        - Exercise
+        - ExercisedAccount
+        - ACOAccount
       abis:
         - name: ACOFactory
           file: ./abis/ACOFactory.json
@@ -111,8 +114,8 @@ templates:
       entities:
         - ACOPool2
         - Token
-        - ACOToken
         - Transaction
+        - ACOSwap
       abis:
         - name: ACOToken
           file: ./abis/ACOToken.json

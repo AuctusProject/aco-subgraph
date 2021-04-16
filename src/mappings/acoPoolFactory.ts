@@ -1,5 +1,6 @@
 import { Transaction, Token, ACOPool2 } from '../types/schema'
 import { NewAcoPool } from '../types/templates/ACOPoolFactory2/ACOPoolFactory2'
+import { ACOPool2 as ACOPoolTemplate } from '../types/templates'
 import {
   fetchTokenSymbol,
   fetchTokenName,
@@ -25,5 +26,7 @@ export function handleNewAcoPool(event: NewAcoPool): void {
   acoPool.isCall = event.params.isCall
   acoPool.implementation = event.params.acoPoolImplementation
   acoPool.tx = tx.id
+
+  ACOPoolTemplate.create(event.params.acoPool)
   acoPool.save()
 }

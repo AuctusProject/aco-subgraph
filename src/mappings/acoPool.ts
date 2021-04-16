@@ -1,5 +1,5 @@
 import { Address } from '@graphprotocol/graph-ts'
-import { ACOToken, Transaction, Token, Swap } from '../types/schema'
+import { ACOToken, Transaction, Token, ACOSwap } from '../types/schema'
 import { Swap as SwapEvent } from '../types/templates/ACOPool2/ACOPool2'
 import {
   getToken,
@@ -16,7 +16,7 @@ export function handlePoolSwap(event: SwapEvent): void {
   let acoAmount = convertTokenToDecimal(event.params.tokenAmount, aco.decimals)
 
   let tx = getTransaction(event) as Transaction
-  let swap = new Swap(event.params.acoToken.toHexString() + "-" + event.address.toHexString() + "-" + event.params.account.toHexString() + event.transaction.hash.toHexString()) as Swap
+  let swap = new ACOSwap(event.params.acoToken.toHexString() + "-" + event.address.toHexString() + "-" + event.params.account.toHexString() + event.transaction.hash.toHexString()) as ACOSwap
   swap.aco = aco.id
   swap.seller = event.address
   swap.buyer = event.params.account
@@ -28,7 +28,5 @@ export function handlePoolSwap(event: SwapEvent): void {
   swap.tx = tx.id
   swap.save()
   aco.swapsCount = aco.swapsCount.plus(ONE_BI)
-  let swaps = aco.swaps
-  aco.swaps = swaps.concat([swap.id])
   aco.save()
 }

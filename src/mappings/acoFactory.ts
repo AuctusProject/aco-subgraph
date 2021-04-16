@@ -2,6 +2,7 @@ import { BigInt, Address, ethereum } from '@graphprotocol/graph-ts'
 import { ACOToken, Transaction, Token, ACOTokenSituation, ACOPoolFactory2 } from '../types/schema'
 import { NewAcoToken, NewAcoTokenData } from '../types/ACOFactory/ACOFactory'
 import { ACOToken as ACOContract } from '../types/ACOFactory/ACOToken'
+import { ACOToken as ACOTemplate, ACOPoolFactory2 as ACOPoolFactoryTemplate } from '../types/templates'
 import {
   ZERO_BD,
   ZERO_BI,
@@ -48,8 +49,9 @@ export function handleNewACO(event: NewAcoTokenData): void {
 
 function createACOPoolFactoryWithNecessary(event: ethereum.Event): void {
   let acoPoolFactory = ACOPoolFactory2.load(ACO_POOL_FACTORY_ADDRESS) as ACOPoolFactory2
-  if (acoPoolFactory == null && event.block.number.ge(BigInt.fromString(ACO_POOL_START.toString()))) {
-    acoPoolFactory = new ACOPoolFactory2(ACO_POOL_FACTORY_ADDRESS)
+  if (acoPoolFactory == null && event.block.number.ge(BigInt.fromI32(ACO_POOL_START))) {
+    acoPoolFactory = new ACOPoolFactory2(ACO_POOL_FACTORY_ADDRESS) as ACOPoolFactory2
+    ACOPoolFactoryTemplate.create(Address.fromString(ACO_POOL_FACTORY_ADDRESS))
     acoPoolFactory.save()
   }
 }
@@ -98,12 +100,10 @@ function setAco(
   aco.exercisesCount = ZERO_BI
   aco.accountsCount = ZERO_BI
   aco.swapsCount = ZERO_BI
-  aco.mints = []
-  aco.burns = []
-  aco.exercises = []
-  aco.accounts = []
-  aco.swaps = []
   let acoTokenSituation = getAcoTokenSituation(acoToken, null) as ACOTokenSituation
   aco.situation = acoTokenSituation.id
+
+  ACOTemplate.create(acoToken)
+
   aco.save()
 }

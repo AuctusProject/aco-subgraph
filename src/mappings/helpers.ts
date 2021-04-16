@@ -213,23 +213,23 @@ export function getAcoTokenSituation(aco: Bytes, account: Bytes): ACOTokenSituat
 export function getTokenAmount(
   collateralAmount: BigInt, 
   isCall: boolean, 
-  strikePrice: BigDecimal, 
-  underlyingDecimals: BigInt): BigDecimal {
+  strikePrice: BigDecimal,
+  collateralDecimals: BigInt): BigDecimal {
+  let collateralValue = convertTokenToDecimal(collateralAmount, collateralDecimals)
   if (isCall == true) {
-    return collateralAmount.toBigDecimal()
+    return collateralValue
   } else {
-    return collateralAmount.toBigDecimal().times(exponentToBigDecimal(underlyingDecimals)).div(strikePrice)
+    return collateralValue.div(strikePrice)
   }
 }
 
 export function getCollateralAmount(
   tokenAmount: BigDecimal, 
   isCall: boolean, 
-  strikePrice: BigDecimal, 
-  underlyingDecimals: BigInt): BigDecimal {
+  strikePrice: BigDecimal): BigDecimal {
   if (isCall == true) {
     return tokenAmount
   } else {
-    return tokenAmount.times(strikePrice).div(exponentToBigDecimal(underlyingDecimals))
+    return tokenAmount.times(strikePrice)
   }
 }

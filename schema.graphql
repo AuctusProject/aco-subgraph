@@ -32,8 +32,8 @@ type ACOToken @entity {
   mints: [Mint!]! @derivedFrom(field: "aco")
   burns: [Burn!]! @derivedFrom(field: "aco")
   exercises: [Exercise!]! @derivedFrom(field: "aco")
-  accounts: [Account!]! @derivedFrom(field: "aco")
-  swaps: [Swap!]! @derivedFrom(field: "aco")
+  accounts: [ACOAccount!]! @derivedFrom(field: "aco")
+  swaps: [ACOSwap!]! @derivedFrom(field: "aco")
 }
 
 type ACOTokenSituation @entity {
@@ -86,14 +86,14 @@ type ExercisedAccount @entity {
   exercisedTokens: BigDecimal!
 }
 
-type Account @entity {
+type ACOAccount @entity {
   id: ID!
   aco: ACOToken!
   balance: BigDecimal!
   situation: ACOTokenSituation!
 }
 
-type Swap @entity {
+type ACOSwap @entity {
   id: ID!
   aco: ACOToken!
   seller: Bytes!

@@ -1,5 +1,5 @@
 import { BigDecimal, BigInt, Bytes, Address, ethereum } from '@graphprotocol/graph-ts'
-import { ACOToken, Token, Exercise, Transaction, ACOTokenSituation, Account, Mint, Burn, Swap, ExercisedAccount } from '../types/schema'
+import { ACOToken, Token, Exercise, Transaction, ACOTokenSituation, ACOAccount, Mint, Burn, ACOSwap, ExercisedAccount } from '../types/schema'
 import { CollateralDeposit, CollateralWithdraw, TransferCollateralOwnership, Assigned, Transfer } from '../types/templates/ACOToken/ACOToken'
 import { 
   ADDRESS_ZERO,
@@ -19,21 +19,20 @@ import {
 
 export function handleMint(event: CollateralDeposit): void {
   let aco = ACOToken.load(event.address.toHexString()) as ACOToken
-  let underlying = Token.load(aco.underlying) as Token
   let collateral = Token.load(aco.collateral) as Token
   let acoTokenSituation = ACOTokenSituation.load(aco.situation) as ACOTokenSituation
-  let account = getAccount(aco, event.params.account) as Account
+  let account = getACOAccount(aco, event.params.account) as ACOAccount
   let accountAcoTokenSituation = ACOTokenSituation.load(account.situation) as ACOTokenSituation
   
-  let tokenAmount = getTokenAmount(event.params.amount, aco.isCall, aco.strikePrice, underlying.decimals)
+  let tokenAmount = getTokenAmount(event.params.amount, aco.isCall, aco.strikePrice, collateral.decimals)
 
   // the balances (totalSupply and account balance) are handled on the `transfer´ event
 
   accountAcoTokenSituation.collateralizedTokens = accountAcoTokenSituation.collateralizedTokens.plus(tokenAmount)
-  setAcoTokenSituation(aco.isCall, aco.strikePrice, aco.expiryTime, underlying.decimals, account.balance, accountAcoTokenSituation, event)
+  setAcoTokenSituation(aco.isCall, aco.strikePrice, aco.expiryTime, account.balance, accountAcoTokenSituation, event)
   
   acoTokenSituation.collateralizedTokens = acoTokenSituation.collateralizedTokens.plus(tokenAmount)
-  setAcoTokenSituation(aco.isCall, aco.strikePrice, aco.expiryTime, underlying.decimals, aco.totalSupply, acoTokenSituation, event)
+  setAcoTokenSituation(aco.isCall, aco.strikePrice, aco.expiryTime, aco.totalSupply, acoTokenSituation, event)
 
   let tx = getTransaction(event) as Transaction
   let mint = new Mint(event.address.toHexString() + "-" + event.params.account.toHexString() + "-" + event.transaction.hash.toHexString()) as Mint
@@ -44,22 +43,19 @@ export function handleMint(event: CollateralDeposit): void {
   mint.tx = tx.id
   mint.save()
   aco.mintsCount = aco.mintsCount.plus(ONE_BI)
-  let mints = aco.mints
-  aco.mints = mints.concat([mint.id])
   aco.save()
 }
 
 export function handleCollateralWithdraw(event: CollateralWithdraw): void {
   let aco = ACOToken.load(event.address.toHexString()) as ACOToken
-  let underlying = Token.load(aco.underlying) as Token
   let collateral = Token.load(aco.collateral) as Token
   let acoTokenSituation = ACOTokenSituation.load(aco.situation) as ACOTokenSituation
-  let account = getAccount(aco, event.params.account) as Account
+  let account = getACOAccount(aco, event.params.account) as ACOAccount
   let accountAcoTokenSituation = ACOTokenSituation.load(account.situation) as ACOTokenSituation
   let exercise = Exercise.load(event.address.toHexString() + "-" + event.params.account.toHexString() + "-" + event.transaction.hash.toHexString()) as Exercise
 
   let totalCollateral = event.params.amount.plus(event.params.fee)
-  let tokenAmount = getTokenAmount(totalCollateral, aco.isCall, aco.strikePrice, underlying.decimals)
+  let tokenAmount = getTokenAmount(totalCollateral, aco.isCall, aco.strikePrice, collateral.decimals)
 
   // the balances (totalSupply and account balance) are handled on the `transfer´ event
 
@@ -77,8 +73,6 @@ export function handleCollateralWithdraw(event: CollateralWithdraw): void {
       burn.tx = tx.id
       burn.save()
       aco.burnsCount = aco.burnsCount.plus(ONE_BI)
-      let burns = aco.burns
-      aco.burns = burns.concat([burn.id])
       aco.save()
     } // the else would be a redeem operation
   } else {
@@ -90,25 +84,24 @@ export function handleCollateralWithdraw(event: CollateralWithdraw): void {
 
   acoTokenSituation.collateralizedTokens = acoTokenSituation.collateralizedTokens.minus(tokenAmount)
 
-  setAcoTokenSituation(aco.isCall, aco.strikePrice, aco.expiryTime, underlying.decimals, account.balance, accountAcoTokenSituation, event)
-  setAcoTokenSituation(aco.isCall, aco.strikePrice, aco.expiryTime, underlying.decimals, aco.totalSupply, acoTokenSituation, event)
+  setAcoTokenSituation(aco.isCall, aco.strikePrice, aco.expiryTime, account.balance, accountAcoTokenSituation, event)
+  setAcoTokenSituation(aco.isCall, aco.strikePrice, aco.expiryTime, aco.totalSupply, acoTokenSituation, event)
 }
 
 export function handleTransferCollateralOwnership(event: TransferCollateralOwnership): void {
   let aco = ACOToken.load(event.address.toHexString()) as ACOToken
-  let underlying = Token.load(aco.underlying) as Token
 
   let tokenAmount = convertTokenToDecimal(event.params.tokenCollateralizedAmount, aco.decimals)
 
-  let from = getAccount(aco, event.params.from) as Account
+  let from = getACOAccount(aco, event.params.from) as ACOAccount
   let fromAcoTokenSituation = ACOTokenSituation.load(from.situation) as ACOTokenSituation
   fromAcoTokenSituation.collateralizedTokens = fromAcoTokenSituation.collateralizedTokens.minus(tokenAmount)
-  setAcoTokenSituation(aco.isCall, aco.strikePrice, aco.expiryTime, underlying.decimals, from.balance, fromAcoTokenSituation, event)
+  setAcoTokenSituation(aco.isCall, aco.strikePrice, aco.expiryTime, from.balance, fromAcoTokenSituation, event)
 
-  let to = getAccount(aco, event.params.to) as Account
+  let to = getACOAccount(aco, event.params.to) as ACOAccount
   let toAcoTokenSituation = ACOTokenSituation.load(to.situation) as ACOTokenSituation
   toAcoTokenSituation.collateralizedTokens = toAcoTokenSituation.collateralizedTokens.plus(tokenAmount)
-  setAcoTokenSituation(aco.isCall, aco.strikePrice, aco.expiryTime, underlying.decimals, to.balance, toAcoTokenSituation, event)
+  setAcoTokenSituation(aco.isCall, aco.strikePrice, aco.expiryTime, to.balance, toAcoTokenSituation, event)
 }
 
 export function handleExerciseAssignment(event: Assigned): void {
@@ -142,27 +135,26 @@ export function handleExerciseAssignment(event: Assigned): void {
     exercise.tokenAmount = ZERO_BD
     exercise.tx = tx.id
     exercise.exercisedAccountsCount = ZERO_BI
-    exercise.exercisedAccounts = []
   }
   exercise.paidAmount = exercise.paidAmount.plus(paidAmount)
   exercise.tokenAmount = exercise.tokenAmount.plus(tokenAmount)
 
   let exercisedAccount = new ExercisedAccount(event.address.toHexString() + "-" + event.params.from.toHexString() + "-" + event.params.to.toHexString() + "-" + event.transaction.hash.toHexString()) as ExercisedAccount
-  exercisedAccount.exercise = id
+  exercisedAccount.exercise = exercise.id
   exercisedAccount.account = event.params.from
   exercisedAccount.paymentReceived = paidAmount
   exercisedAccount.exercisedTokens = tokenAmount
     
-  let account = getAccount(aco, event.params.from) as Account
+  let account = getACOAccount(aco, event.params.from) as ACOAccount
   let accountAcoTokenSituation = ACOTokenSituation.load(account.situation) as ACOTokenSituation
   accountAcoTokenSituation.exercisedPayment = accountAcoTokenSituation.exercisedPayment.plus(paidAmount)
   accountAcoTokenSituation.exercisedTokens = accountAcoTokenSituation.exercisedTokens.plus(tokenAmount)
   accountAcoTokenSituation.collateralizedTokens = accountAcoTokenSituation.collateralizedTokens.minus(tokenAmount)
-  setAcoTokenSituation(aco.isCall, aco.strikePrice, aco.expiryTime, underlying.decimals, account.balance, accountAcoTokenSituation, event)
+  setAcoTokenSituation(aco.isCall, aco.strikePrice, aco.expiryTime, account.balance, accountAcoTokenSituation, event)
+
+  exercisedAccount.save()
 
   exercise.exercisedAccountsCount = exercise.exercisedAccountsCount.plus(ONE_BI)
-  let exercisedAccounts = exercise.exercisedAccounts
-  exercise.exercisedAccounts = exercisedAccounts.concat([exercisedAccount.id])
   exercise.save()
 
   acoTokenSituation.exercisedPayment = acoTokenSituation.exercisedPayment.plus(paidAmount)
@@ -170,8 +162,7 @@ export function handleExerciseAssignment(event: Assigned): void {
   acoTokenSituation.save()
 
   if (isNew) {
-    let exercises = aco.exercises
-    aco.exercises = exercises.concat([exercise.id])
+    aco.exercisesCount = aco.exercisesCount.plus(ONE_BI)
     aco.save()
   }
 }
@@ -183,33 +174,32 @@ export function handleTransfer(event: Transfer): void {
 
   if (tokenAmount.gt(ZERO_BD)) {
 
-    let underlying = Token.load(aco.underlying) as Token
     let isMint = event.params.from.toHexString() == ADDRESS_ZERO
     let isBurn = event.params.to.toHexString() == ADDRESS_ZERO
 
     if (isMint) {
       let acoTokenSituation = ACOTokenSituation.load(aco.situation) as ACOTokenSituation
       aco.totalSupply = aco.totalSupply.plus(tokenAmount)
-      setAcoTokenSituation(aco.isCall, aco.strikePrice, aco.expiryTime, underlying.decimals, aco.totalSupply, acoTokenSituation, event)
+      setAcoTokenSituation(aco.isCall, aco.strikePrice, aco.expiryTime, aco.totalSupply, acoTokenSituation, event)
       aco.save()
     } else {
-      let from = getAccount(aco, event.params.from) as Account
+      let from = getACOAccount(aco, event.params.from) as ACOAccount
       let fromAcoTokenSituation = ACOTokenSituation.load(from.situation) as ACOTokenSituation
       from.balance = from.balance.minus(tokenAmount)
-      setAcoTokenSituation(aco.isCall, aco.strikePrice, aco.expiryTime, underlying.decimals, from.balance, fromAcoTokenSituation, event)
+      setAcoTokenSituation(aco.isCall, aco.strikePrice, aco.expiryTime, from.balance, fromAcoTokenSituation, event)
       from.save()
     }
 
     if (isBurn) {
       let acoTokenSituation = ACOTokenSituation.load(aco.situation) as ACOTokenSituation
       aco.totalSupply = aco.totalSupply.minus(tokenAmount)
-      setAcoTokenSituation(aco.isCall, aco.strikePrice, aco.expiryTime, underlying.decimals, aco.totalSupply, acoTokenSituation, event)
+      setAcoTokenSituation(aco.isCall, aco.strikePrice, aco.expiryTime, aco.totalSupply, acoTokenSituation, event)
       aco.save()
     } else {
-      let to = getAccount(aco, event.params.to) as Account
+      let to = getACOAccount(aco, event.params.to) as ACOAccount
       let toAcoTokenSituation = ACOTokenSituation.load(to.situation) as ACOTokenSituation
       to.balance = to.balance.plus(tokenAmount)
-      setAcoTokenSituation(aco.isCall, aco.strikePrice, aco.expiryTime, underlying.decimals, to.balance, toAcoTokenSituation, event)
+      setAcoTokenSituation(aco.isCall, aco.strikePrice, aco.expiryTime, to.balance, toAcoTokenSituation, event)
       to.save()
     }
 
@@ -224,6 +214,7 @@ function handleSwapOnZrxOrOtc(tokenAmount: BigDecimal, aco: ACOToken, event: Tra
   let buyer = null as Bytes
   let swapPaidAmount = null as BigInt
   let swapToken = null as Token
+
   if (event.transaction.to != null 
     && event.params.from.toHexString() != ADDRESS_ZERO 
     && event.params.to.toHexString() != ADDRESS_ZERO) {
@@ -256,8 +247,8 @@ function handleSwapOnZrxOrOtc(tokenAmount: BigDecimal, aco: ACOToken, event: Tra
         let searchValue = maker.toHexString().substring(2) as string
         let indexValue = input.indexOf(searchValue)
         let indexToken = input.indexOf("f47261b0000000000000000000000000")
-        let val1 = BigInt.fromString("0x" + input.substring(indexValue + 232, indexValue + 296))
-        let val2 = BigInt.fromString("0x" + input.substring(indexValue + 296, indexValue + 360))
+        let val1 = BigInt.fromUnsignedBytes(Bytes.fromHexString("0x" + input.substring(indexValue + 232, indexValue + 296)) as Bytes)
+        let val2 = BigInt.fromUnsignedBytes(Bytes.fromHexString("0x" + input.substring(indexValue + 296, indexValue + 360)) as Bytes)
         if (method == "8bc8efb3") {
           swapPaidAmount = event.params.value.times(val2).div(val1)
           swapToken = getToken(Address.fromString("0x" + input.substring(indexToken + 224, indexToken + 264))) as Token
@@ -275,18 +266,18 @@ function handleSwapOnZrxOrOtc(tokenAmount: BigDecimal, aco: ACOToken, event: Tra
       let method = input.substring(2, 10)
       if (method == "7da22e76") {
         seller = Address.fromString("0x" + input.substring(162, 202))
-        swapPaidAmount = BigInt.fromString("0x" + input.substring(650, 714))
+        swapPaidAmount = BigInt.fromUnsignedBytes(Bytes.fromHexString("0x" + input.substring(650, 714)) as Bytes)
         swapToken = getToken(Address.fromString("0x" + input.substring(738, 778)))
       } else if (method == "538df066") {
         seller = event.transaction.from
-        swapPaidAmount = BigInt.fromString("0x" + input.substring(202, 266))
+        swapPaidAmount = BigInt.fromUnsignedBytes(Bytes.fromHexString("0x" + input.substring(202, 266)) as Bytes)
         swapToken = getToken(Address.fromString("0x" + input.substring(290, 330)))
       }
     }
 
     if (swapType != null && taker != null && seller != null && buyer != null && swapPaidAmount != null && swapToken != null) {
       let tx = getTransaction(event) as Transaction
-      let swap = new Swap(event.address.toHexString() + "-" + seller.toHexString() + "-" + buyer.toHexString() + event.transaction.hash.toHexString()) as Swap
+      let swap = new ACOSwap(event.address.toHexString() + "-" + seller.toHexString() + "-" + buyer.toHexString() + event.transaction.hash.toHexString()) as ACOSwap
       swap.aco = aco.id
       swap.seller = seller
       swap.buyer = buyer
@@ -298,8 +289,6 @@ function handleSwapOnZrxOrOtc(tokenAmount: BigDecimal, aco: ACOToken, event: Tra
       swap.tx = tx.id
       swap.save()
       aco.swapsCount = aco.swapsCount.plus(ONE_BI)
-      let swaps = aco.swaps
-      aco.swaps = swaps.concat([swap.id])
       aco.save()
     }
   }
@@ -309,7 +298,6 @@ function setAcoTokenSituation(
   isCall: boolean,
   strikePrice: BigDecimal,
   expiryTime: BigInt,
-  underlyingDecimals: BigInt,
   tokenBalance: BigDecimal, 
   acoTokenSituation: ACOTokenSituation, 
   event: ethereum.Event): void {
@@ -318,9 +306,9 @@ function setAcoTokenSituation(
   let unassignableTokens = unassignableAmount(tokenBalance, acoTokenSituation.collateralizedTokens, expiryTime, event)
   acoTokenSituation.assignableTokens = assignableTokens
   acoTokenSituation.unassignableTokens = unassignableTokens
-  acoTokenSituation.collateralAmount = getCollateralAmount(acoTokenSituation.collateralizedTokens, isCall, strikePrice, underlyingDecimals)
-  acoTokenSituation.assignableCollateral = getCollateralAmount(assignableTokens, isCall, strikePrice, underlyingDecimals)
-  acoTokenSituation.unassignableCollateral = getCollateralAmount(unassignableTokens, isCall, strikePrice, underlyingDecimals)
+  acoTokenSituation.collateralAmount = getCollateralAmount(acoTokenSituation.collateralizedTokens, isCall, strikePrice)
+  acoTokenSituation.assignableCollateral = getCollateralAmount(assignableTokens, isCall, strikePrice)
+  acoTokenSituation.unassignableCollateral = getCollateralAmount(unassignableTokens, isCall, strikePrice)
   acoTokenSituation.save()
 }
 
@@ -348,19 +336,37 @@ function assignableAmount(
   }
 }
 
-function getAccount(aco: ACOToken, account: Bytes): Account {
+function getACOAccount(aco: ACOToken, account: Bytes): ACOAccount {
   let id = aco.id + "-" + account.toHexString()
-  let acc = Account.load(id) as Account
+  let acc = ACOAccount.load(id) as ACOAccount
   if (acc == null) {
-    acc = new Account(id) as Account
+    acc = new ACOAccount(id) as ACOAccount
+    acc.aco = aco.id
     acc.balance = ZERO_BD
     let accSituation = getAcoTokenSituation(Address.fromString(aco.id), account) as ACOTokenSituation
     acc.situation = accSituation.id
     acc.save()
     aco.accountsCount = aco.accountsCount.plus(ONE_BI)
-    let accounts = aco.accounts
-    aco.accounts = accounts.concat([acc.id])
     aco.save()
   }
   return acc
+}
+
+function hexStringToDecimal(value: string): BigDecimal {
+  let digits = new Array<number>()
+  digits.push(0)
+  for (let i = 0; i < value.length; ++i) {
+    let carry = parseInt(value.charAt(i), 16)
+    for (let j = 0; j < digits.length; ++j) {
+      digits[j] = digits[j] * 16 + carry
+      carry = digits[j] / 10
+      digits[j] %= 10
+    }
+    while (carry > 0) {
+      digits.push(carry % 10)
+      carry = carry / 10
+    }
+  }
+  let stringDecimalValue = digits.reverse().join('')
+  return BigDecimal.fromString(stringDecimalValue)
 }
