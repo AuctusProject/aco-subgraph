@@ -116,6 +116,15 @@ templates:
         - Token
         - Transaction
         - ACOSwap
+        - PoolSwap
+        - PoolAccount
+        - CollateralRestore
+        - ACORedeem
+        - ACOAmount
+        - Withdrawal
+        - Deposit
+        - ACOCreatorPermission
+        - ACOOnPool
       abis:
         - name: ACOToken
           file: ./abis/ACOToken.json
@@ -124,5 +133,55 @@ templates:
         - name: ERC20
           file: ./abis/ERC20.json
       eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
         - event: Swap(indexed address,indexed address,uint256,uint256,uint256,uint256,uint256)
           handler: handlePoolSwap
+        - event: RestoreCollateral(uint256,uint256)
+          handler: handleRestoreCollateral
+        - event: ACORedeem(indexed address,uint256,uint256,uint256)
+          handler: handleACORedeem
+        - event: Deposit(indexed address,uint256,uint256)
+          handler: handleDeposit
+        - event: Withdraw(indexed address,uint256,bool,uint256,uint256,address[],uint256[])
+          handler: handleWithdraw
+        - event: SetStrategy(indexed address,indexed address)
+          handler: handleNewStrategy
+        - event: SetBaseVolatility(indexed uint256,indexed uint256)
+          handler: handleNewBaseVolatility
+        - event: SetValidAcoCreator(indexed address,indexed bool,indexed bool)
+          handler: handleValidAcoCreator
+        - event: SetPoolAdmin(indexed address,indexed address)
+          handler: handleNewPoolAdmin
+        - event: SetForbiddenAcoCreator(indexed address,indexed bool,indexed bool)
+          handler: handleForbiddenAcoCreator
+        - event: SetAcoPermissionConfig((uint256,uint256,uint256,uint256,uint256,uint256),(uint256,uint256,uint256,uint256,uint256,uint256))
+          handler: handleNewAcoPermissionConfig
+        - event: SetProtocolConfig((uint16,uint256,uint256,uint256,uint256,address,address),(uint16,uint256,uint256,uint256,uint256,address,address))
+          handler: handleNewProtocolConfig
+        - event: SetLendingPoolReferral(indexed uint256,indexed uint256)
+          handler: handleNewLendingPoolReferral
+        - event: SetPoolDataForAcoPermission(uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256)
+          handler: handleNewPoolDataForAcoPermission
+        - event: SetFeeData(address,uint256,address,uint256)
+          handler: handleNewFeeData
+        - event: SetAssetConverter(indexed address,indexed address)
+          handler: handleNewAssetConverter
+        - event: SetTolerancePriceAbove(indexed uint256,indexed uint256)
+          handler: handleNewTolerancePriceAbove
+        - event: SetTolerancePriceBelow(indexed uint256,indexed uint256)
+          handler: handleNewTolerancePriceBelow
+        - event: SetMinExpiration(indexed uint256,indexed uint256)
+          handler: handleNewMinExpiration
+        - event: SetMaxExpiration(indexed uint256,indexed uint256)
+          handler: handleNewMaxExpiration
+        - event: SetWithdrawOpenPositionPenalty(indexed uint256,indexed uint256)
+          handler: handleNewWithdrawOpenPositionPenalty
+        - event: SetUnderlyingPriceAdjustPercentage(indexed uint256,indexed uint256)
+          handler: handleNewUnderlyingPriceAdjustPercentage
+        - event: SetMaximumOpenAco(indexed uint256,indexed uint256)
+          handler: handleNewMaximumOpenAco
+        - event: SetFee(indexed uint256,indexed uint256)
+          handler: handleNewFee
+        - event: SetFeeDestination(indexed address,indexed address)
+          handler: handleNewFeeDestination

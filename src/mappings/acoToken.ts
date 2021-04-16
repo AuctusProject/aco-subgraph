@@ -247,8 +247,8 @@ function handleSwapOnZrxOrOtc(tokenAmount: BigDecimal, aco: ACOToken, event: Tra
         let searchValue = maker.toHexString().substring(2) as string
         let indexValue = input.indexOf(searchValue)
         let indexToken = input.indexOf("f47261b0000000000000000000000000")
-        let val1 = BigInt.fromUnsignedBytes(Bytes.fromHexString("0x" + input.substring(indexValue + 232, indexValue + 296)) as Bytes)
-        let val2 = BigInt.fromUnsignedBytes(Bytes.fromHexString("0x" + input.substring(indexValue + 296, indexValue + 360)) as Bytes)
+        let val1 = BigInt.fromUnsignedBytes((Bytes.fromHexString("0x" + input.substring(indexValue + 232, indexValue + 296)) as Bytes).reverse() as Bytes)
+        let val2 = BigInt.fromUnsignedBytes((Bytes.fromHexString("0x" + input.substring(indexValue + 296, indexValue + 360)) as Bytes).reverse() as Bytes)
         if (method == "8bc8efb3") {
           swapPaidAmount = event.params.value.times(val2).div(val1)
           swapToken = getToken(Address.fromString("0x" + input.substring(indexToken + 224, indexToken + 264))) as Token
@@ -266,18 +266,18 @@ function handleSwapOnZrxOrOtc(tokenAmount: BigDecimal, aco: ACOToken, event: Tra
       let method = input.substring(2, 10)
       if (method == "7da22e76") {
         seller = Address.fromString("0x" + input.substring(162, 202))
-        swapPaidAmount = BigInt.fromUnsignedBytes(Bytes.fromHexString("0x" + input.substring(650, 714)) as Bytes)
+        swapPaidAmount = BigInt.fromUnsignedBytes((Bytes.fromHexString("0x" + input.substring(650, 714)) as Bytes).reverse() as Bytes)
         swapToken = getToken(Address.fromString("0x" + input.substring(738, 778)))
       } else if (method == "538df066") {
         seller = event.transaction.from
-        swapPaidAmount = BigInt.fromUnsignedBytes(Bytes.fromHexString("0x" + input.substring(202, 266)) as Bytes)
+        swapPaidAmount = BigInt.fromUnsignedBytes((Bytes.fromHexString("0x" + input.substring(202, 266)) as Bytes).reverse() as Bytes)
         swapToken = getToken(Address.fromString("0x" + input.substring(290, 330)))
       }
     }
 
     if (swapType != null && taker != null && seller != null && buyer != null && swapPaidAmount != null && swapToken != null) {
       let tx = getTransaction(event) as Transaction
-      let swap = new ACOSwap(event.address.toHexString() + "-" + seller.toHexString() + "-" + buyer.toHexString() + event.transaction.hash.toHexString()) as ACOSwap
+      let swap = new ACOSwap(event.address.toHexString() + "-" + seller.toHexString() + "-" + buyer.toHexString() + "-" + event.transaction.hash.toHexString()) as ACOSwap
       swap.aco = aco.id
       swap.seller = seller
       swap.buyer = buyer
@@ -341,6 +341,7 @@ function getACOAccount(aco: ACOToken, account: Bytes): ACOAccount {
   let acc = ACOAccount.load(id) as ACOAccount
   if (acc == null) {
     acc = new ACOAccount(id) as ACOAccount
+    acc.account = account
     acc.aco = aco.id
     acc.balance = ZERO_BD
     let accSituation = getAcoTokenSituation(Address.fromString(aco.id), account) as ACOTokenSituation
@@ -350,23 +351,4 @@ function getACOAccount(aco: ACOToken, account: Bytes): ACOAccount {
     aco.save()
   }
   return acc
-}
-
-function hexStringToDecimal(value: string): BigDecimal {
-  let digits = new Array<number>()
-  digits.push(0)
-  for (let i = 0; i < value.length; ++i) {
-    let carry = parseInt(value.charAt(i), 16)
-    for (let j = 0; j < digits.length; ++j) {
-      digits[j] = digits[j] * 16 + carry
-      carry = digits[j] / 10
-      digits[j] %= 10
-    }
-    while (carry > 0) {
-      digits.push(carry % 10)
-      carry = carry / 10
-    }
-  }
-  let stringDecimalValue = digits.reverse().join('')
-  return BigDecimal.fromString(stringDecimalValue)
 }

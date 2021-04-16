@@ -88,6 +88,7 @@ type ExercisedAccount @entity {
 
 type ACOAccount @entity {
   id: ID!
+  account: Bytes!
   aco: ACOToken!
   balance: BigDecimal!
   situation: ACOTokenSituation!
@@ -131,6 +132,129 @@ type ACOPool2 @entity {
   name: String!
   decimals: BigInt!
   isCall: Boolean!
+  totalSupply: BigDecimal!
   tx: Transaction!
   implementation: Bytes!
+  gasToken: Bytes!
+  strategy: Bytes!
+  baseVolatility: BigDecimal!
+  tolerancePriceBelowMin: BigDecimal!
+  tolerancePriceBelowMax: BigDecimal!
+  tolerancePriceAboveMin: BigDecimal!
+  tolerancePriceAboveMax: BigDecimal!
+  minExpiration: BigInt!
+  maxExpiration: BigInt!
+  withdrawOpenPositionPenalty: BigDecimal!
+  underlyingPriceAdjustPercentage: BigDecimal!
+  fee: BigDecimal!
+  maximumOpenAco: BigInt!
+  feeDestination: Bytes!
+  assetConverter: Bytes!
+  poolAdmin: Bytes
+  lendingPool: Bytes
+  lendingPoolReferral: BigInt
+  openAcosCount: BigInt!
+  holdersCount: BigInt!
+  acosCount: BigInt!
+  acoCreatorsPermissionCount: BigInt!
+  swapsCount: BigInt!
+  depositsCount: BigInt!
+  withdrawalsCount: BigInt!
+  acoRedeemsCount: BigInt!
+  collateralRestoresCount: BigInt!
+  accountsCount: BigInt!
+  acos: [ACOOnPool!]! @derivedFrom(field: "pool")
+  acoCreatorsPermission: [ACOCreatorPermission!]! @derivedFrom(field: "pool")
+  swaps: [PoolSwap!]! @derivedFrom(field: "pool")
+  deposits: [Deposit!]! @derivedFrom(field: "pool")
+  withdrawals: [Withdrawal!]! @derivedFrom(field: "pool")
+  acoRedeems: [ACORedeem!]! @derivedFrom(field: "pool")
+  collateralRestores: [CollateralRestore!]! @derivedFrom(field: "pool")
+  accounts: [PoolAccount!]! @derivedFrom(field: "pool")
+}
+
+type ACOOnPool @entity {
+  id: ID!
+  pool: ACOPool2!
+  aco: ACOToken!
+  isOpen: Boolean!
+  acoAmount: BigDecimal!
+  valueSold: BigDecimal!
+  collateralLocked: BigDecimal!
+  collateralRedeemed: BigDecimal!
+}
+
+type ACOCreatorPermission @entity {
+  id: ID!
+  pool: ACOPool2!
+  creator: Bytes!
+  isValid: Boolean!
+  isForbidden: Boolean!
+}
+
+type PoolSwap @entity {
+  id: ID!
+  pool: ACOPool2!
+  aco: ACOToken!
+  account: Bytes!
+  tx: Transaction!
+  acoAmount: BigDecimal! 
+  paymentAmount: BigDecimal! 
+  protocolFee: BigDecimal! 
+  underlyingPrice: BigDecimal!
+	volatility: BigDecimal!
+}
+
+type Deposit @entity {
+  id: ID!
+  pool: ACOPool2!
+  account: Bytes!
+  tx: Transaction!
+  shares: BigDecimal!
+  collateralAmount: BigDecimal!
+}
+
+type Withdrawal @entity {
+  id: ID!
+  pool: ACOPool2!
+  account: Bytes!
+  tx: Transaction!
+  shares: BigDecimal!
+	noLocked: Boolean! 
+  underlyingWithdrawn: BigDecimal!
+  strikeAssetWithdrawn: BigDecimal!
+  openAcosCount: BigInt!
+  openAcos: [ACOAmount!]! @derivedFrom(field: "withdrawal")
+}
+
+type ACOAmount @entity {
+  id: ID!
+  withdrawal: Withdrawal!
+  aco: ACOToken!
+  amount: BigDecimal!
+}
+
+type ACORedeem @entity {
+  id: ID!
+  pool: ACOPool2!
+  aco: ACOToken!
+  caller: Bytes!
+  tx: Transaction!
+  collateralRedeemed: BigDecimal!
+}
+
+type CollateralRestore @entity {
+  id: ID!
+  pool: ACOPool2!
+  caller: Bytes!
+  tx: Transaction!
+  amountSold: BigDecimal!
+  collateralRestored: BigDecimal!
+}
+
+type PoolAccount @entity {
+  id: ID!
+  pool: ACOPool2!
+  account: Bytes!
+  balance: BigDecimal!
 }
