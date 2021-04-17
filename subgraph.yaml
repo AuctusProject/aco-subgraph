@@ -118,6 +118,7 @@ templates:
       file: ./src/mappings/acoPool.ts
       entities:
         - ACOPool2
+        - ACOToken
         - Token
         - Transaction
         - ACOSwap

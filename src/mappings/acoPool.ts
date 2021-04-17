@@ -84,7 +84,7 @@ export function handleTransfer(event: Transfer): void {
       pool.totalSupply = pool.totalSupply.minus(tokenAmount)
       pool.save()
     } else {
-      let to = getPoolAccount(pool, event.params.from) as PoolAccount
+      let to = getPoolAccount(pool, event.params.to) as PoolAccount
       if (to.balance.equals(ZERO_BD)) {
         pool.holdersCount = pool.holdersCount.plus(ONE_BI)
         pool.save()
@@ -239,8 +239,16 @@ export function handleWithdraw(event: Withdraw): void {
   withdrawal.strikeAssetWithdrawn = convertTokenToDecimal(event.params.strikeAssetWithdrawn, strikeAsset.decimals)
   withdrawal.openAcosCount = BigInt.fromI32(event.params.acos.length)
   withdrawal.save()
-  for (let i = 0 as number; i < event.params.acos.length; ++i) {
-    setAcoAmount(event, i, withdrawal.id, pool.decimals)
+  if (event.params.acos.length > 0) {
+    let acos = event.params.acos.reverse() as Address[]
+    let amounts = event.params.acosAmount.reverse() as BigInt[]
+    for (let i = 0 as i32; i < acos.length; ++i) {
+      let acoAmount = new ACOAmount(event.address.toHexString() + "-" + event.params.account.toHexString() + "-" + acos[i].toHexString() + "-" + event.transaction.hash.toHexString()) as ACOAmount
+      acoAmount.withdrawal = withdrawal.id
+      acoAmount.aco = acos[i].toHexString()
+      acoAmount.amount = convertTokenToDecimal(amounts[i], pool.decimals)
+      acoAmount.save()
+    }
   }
   pool.withdrawalsCount = pool.withdrawalsCount.plus(ONE_BI)
   pool.save()
@@ -484,16 +492,6 @@ function getPoolAccount(pool: ACOPool2, account: Bytes): PoolAccount {
     pool.save()
   }
   return acc
-}
-
-function setAcoAmount(event: Withdraw, index: number, withdrawalId: string, poolDecimals: BigInt): void {
-  let aco = event.params.acos.filter((e: Address, i: i32) => index == i)[0] as Address
-  let amount = event.params.acosAmount.filter((e: BigInt, i: i32) => index == i)[0] as BigInt
-  let acoAmount = new ACOAmount(event.address.toHexString() + "-" + event.params.account.toHexString() + "-" + aco.toHexString() + "-" + event.transaction.hash.toHexString()) as ACOAmount
-  acoAmount.withdrawal = withdrawalId
-  acoAmount.aco = aco.toHexString()
-  acoAmount.amount = convertTokenToDecimal(amount, poolDecimals)
-  acoAmount.save()
 }
 
 function setAcoCreatorPermission(poolAddress: Address, creator: Address, isValid: boolean, isForbidden: boolean): void {

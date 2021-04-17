@@ -118,6 +118,7 @@ templates:
       file: ./src/mappings/acoPool.ts
       entities:
         - ACOPool2
+        - ACOToken
         - Token
         - Transaction
         - ACOSwap
@@ -145,7 +146,7 @@ templates:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
         - event: Swap(indexed address,indexed address,uint256,uint256,uint256,uint256,uint256)
-          handler: handlePoolSwap
+          handler: handleSwap
         - event: RestoreCollateral(uint256,uint256)
           handler: handleRestoreCollateral
         - event: ACORedeem(indexed address,uint256,uint256,uint256)
