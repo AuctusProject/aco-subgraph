@@ -24,16 +24,19 @@ type ACOToken @entity {
   implementation: Bytes!
   situation: ACOTokenSituation!
   tx: Transaction!
+  holdersCount: BigInt!
   mintsCount: BigInt!
   burnsCount: BigInt!
   exercisesCount: BigInt!
   accountsCount: BigInt!
   swapsCount: BigInt!
+  accountRedeemsCount: BigInt!
   mints: [Mint!]! @derivedFrom(field: "aco")
   burns: [Burn!]! @derivedFrom(field: "aco")
   exercises: [Exercise!]! @derivedFrom(field: "aco")
   accounts: [ACOAccount!]! @derivedFrom(field: "aco")
   swaps: [ACOSwap!]! @derivedFrom(field: "aco")
+  accountRedeems: [AccountRedeem!]! @derivedFrom(field: "aco")
 }
 
 type ACOTokenSituation @entity {
@@ -113,6 +116,14 @@ enum SwapType {
   OTC
 }
 
+type AccountRedeem @entity {
+  id: ID!
+  aco: ACOToken!
+  account: Bytes!
+  collateralAmount: BigDecimal!
+  tx: Transaction!
+}
+
 type Transaction @entity {
   id: ID!
   timestamp: BigInt!
@@ -163,6 +174,10 @@ type ACOPool2 @entity {
   acoRedeemsCount: BigInt!
   collateralRestoresCount: BigInt!
   accountsCount: BigInt!
+  acoPoolPermissionsHistoryCount: BigInt!
+  baseVolatilitiesHistoryCount: BigInt!
+  strategiesHistoryCount: BigInt!
+  poolAdminsHistoryCount: BigInt!
   acos: [ACOOnPool!]! @derivedFrom(field: "pool")
   acoCreatorsPermission: [ACOCreatorPermission!]! @derivedFrom(field: "pool")
   swaps: [PoolSwap!]! @derivedFrom(field: "pool")
@@ -171,6 +186,10 @@ type ACOPool2 @entity {
   acoRedeems: [ACORedeem!]! @derivedFrom(field: "pool")
   collateralRestores: [CollateralRestore!]! @derivedFrom(field: "pool")
   accounts: [PoolAccount!]! @derivedFrom(field: "pool")
+  acoPoolPermissionsHistory: [ACOPoolPermission!]! @derivedFrom(field: "pool")
+  baseVolatilitiesHistory: [ACOPoolBaseVolatility!]! @derivedFrom(field: "pool")
+  strategiesHistory: [ACOPoolStrategy!]! @derivedFrom(field: "pool")
+  poolAdminsHistory: [ACOPoolAdmin!]! @derivedFrom(field: "pool")
 }
 
 type ACOOnPool @entity {
@@ -257,4 +276,41 @@ type PoolAccount @entity {
   pool: ACOPool2!
   account: Bytes!
   balance: BigDecimal!
+}
+
+type ACOPoolPermission @entity {
+  id: ID!
+  pool: ACOPool2!
+  caller: Bytes!
+  tx: Transaction!
+  tolerancePriceBelowMin: BigDecimal!
+  tolerancePriceBelowMax: BigDecimal!
+  tolerancePriceAboveMin: BigDecimal!
+  tolerancePriceAboveMax: BigDecimal!
+  minExpiration: BigInt!
+  maxExpiration: BigInt!
+}
+
+type ACOPoolBaseVolatility @entity {
+  id: ID!
+  pool: ACOPool2!
+  caller: Bytes!
+  tx: Transaction!
+  baseVolatility: BigDecimal!
+}
+
+type ACOPoolStrategy @entity {
+  id: ID!
+  pool: ACOPool2!
+  caller: Bytes!
+  tx: Transaction!
+  strategy: Bytes!
+}
+
+type ACOPoolAdmin @entity {
+  id: ID!
+  pool: ACOPool2!
+  caller: Bytes!
+  tx: Transaction!
+  poolAdmin: Bytes!
 }

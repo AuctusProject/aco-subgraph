@@ -1,5 +1,5 @@
 import { BigDecimal, BigInt, Bytes, Address, ethereum } from '@graphprotocol/graph-ts'
-import { ACOToken, Token, Exercise, Transaction, ACOTokenSituation, ACOAccount, Mint, Burn, ACOSwap, ExercisedAccount } from '../types/schema'
+import { ACOToken, Token, Exercise, Transaction, ACOTokenSituation, ACOAccount, Mint, Burn, ACOSwap, ExercisedAccount, AccountRedeem } from '../types/schema'
 import { CollateralDeposit, CollateralWithdraw, TransferCollateralOwnership, Assigned, Transfer } from '../types/templates/ACOToken/ACOToken'
 import { 
   ADDRESS_ZERO,
@@ -62,9 +62,9 @@ export function handleCollateralWithdraw(event: CollateralWithdraw): void {
   if (exercise == null) {
     accountAcoTokenSituation.collateralizedTokens = accountAcoTokenSituation.collateralizedTokens.minus(tokenAmount)
 
+    let tx = getTransaction(event) as Transaction
     if (event.block.timestamp.lt(aco.expiryTime)) {
       // it is a burn operation
-      let tx = getTransaction(event) as Transaction
       let burn = new Burn(event.address.toHexString() + "-" + event.params.account.toHexString() + "-" + event.transaction.hash.toHexString()) as Burn
       burn.aco = aco.id
       burn.account = event.params.account
@@ -74,7 +74,17 @@ export function handleCollateralWithdraw(event: CollateralWithdraw): void {
       burn.save()
       aco.burnsCount = aco.burnsCount.plus(ONE_BI)
       aco.save()
-    } // the else would be a redeem operation
+    } else {
+      // it is a redeem operation
+      let redeem = new AccountRedeem(event.address.toHexString() + "-" + event.params.account.toHexString() + "-" + event.transaction.hash.toHexString()) as AccountRedeem
+      redeem.aco = aco.id
+      redeem.account = event.params.account
+      redeem.collateralAmount = convertTokenToDecimal(totalCollateral, collateral.decimals)
+      redeem.tx = tx.id
+      redeem.save()
+      aco.accountRedeemsCount = aco.accountRedeemsCount.plus(ONE_BI)
+      aco.save()
+    }
   } else {
     // it is an exercise operation
     let feeAmount = convertTokenToDecimal(event.params.fee, collateral.decimals)
@@ -186,6 +196,10 @@ export function handleTransfer(event: Transfer): void {
       let from = getACOAccount(aco, event.params.from) as ACOAccount
       let fromAcoTokenSituation = ACOTokenSituation.load(from.situation) as ACOTokenSituation
       from.balance = from.balance.minus(tokenAmount)
+      if (from.balance.equals(ZERO_BD)) {
+        aco.holdersCount = aco.holdersCount.minus(ONE_BI)
+        aco.save()
+      }
       setAcoTokenSituation(aco.isCall, aco.strikePrice, aco.expiryTime, from.balance, fromAcoTokenSituation, event)
       from.save()
     }
@@ -197,6 +211,10 @@ export function handleTransfer(event: Transfer): void {
       aco.save()
     } else {
       let to = getACOAccount(aco, event.params.to) as ACOAccount
+      if (to.balance.equals(ZERO_BD)) {
+        aco.holdersCount = aco.holdersCount.plus(ONE_BI)
+        aco.save()
+      }
       let toAcoTokenSituation = ACOTokenSituation.load(to.situation) as ACOTokenSituation
       to.balance = to.balance.plus(tokenAmount)
       setAcoTokenSituation(aco.isCall, aco.strikePrice, aco.expiryTime, to.balance, toAcoTokenSituation, event)

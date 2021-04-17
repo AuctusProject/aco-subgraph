@@ -1,4 +1,4 @@
-import { Address, BigInt } from '@graphprotocol/graph-ts'
+import { Address, BigInt, Bytes } from '@graphprotocol/graph-ts'
 import { Transaction, Token, ACOPool2 } from '../types/schema'
 import { NewAcoPool } from '../types/templates/ACOPoolFactory2/ACOPoolFactory2'
 import { ACOPool2 as ACOPoolContract, ACOPool2__acoPermissionConfigResult, ACOPool2__protocolConfigResult } from '../types/templates/ACOPoolFactory2/ACOPool2'
@@ -14,8 +14,10 @@ import {
   convertTokenToDecimal,
   ACO_POOL_IMPL_V1_ADDRESS,
   ACO_POOL_IMPL_V2_ADDRESS,
-  ACO_POOL_IMPL_V3_ADDRESS
+  ACO_POOL_IMPL_V3_ADDRESS,
+  ONE_BI
 } from './helpers'
+import { setAcoPoolAdminHistory, setAcoPoolBaseVolatilityHistory, setAcoPoolPermissionHistory, setAcoPoolStrategyHistory } from './acoPool'
 
 export function handleNewAcoPool(event: NewAcoPool): void {
   let tx = getTransaction(event) as Transaction
@@ -46,6 +48,9 @@ export function handleNewAcoPool(event: NewAcoPool): void {
   acoPool.acoRedeemsCount = ZERO_BI
   acoPool.collateralRestoresCount = ZERO_BI
   acoPool.accountsCount = ZERO_BI
+  acoPool.strategiesHistoryCount = ONE_BI
+  acoPool.baseVolatilitiesHistoryCount = ONE_BI
+  acoPool.acoPoolPermissionsHistoryCount = ONE_BI
   acoPool.gasToken = acoPoolContract.chiToken() as Address
   acoPool.strategy = acoPoolContract.strategy() as Address
   acoPool.baseVolatility = convertTokenToDecimal(acoPoolContract.baseVolatility() as BigInt, BigInt.fromI32(5))
@@ -100,6 +105,7 @@ export function handleNewAcoPool(event: NewAcoPool): void {
     acoPool.minExpiration = acoPermissionConfig.value4 as BigInt
     acoPool.maxExpiration = acoPermissionConfig.value5 as BigInt
   }
+
   if (implementation != ACO_POOL_IMPL_V1_ADDRESS) {
     acoPool.lendingPool = acoPoolContract.lendingPool()
     if (implementation == ACO_POOL_IMPL_V2_ADDRESS || implementation == ACO_POOL_IMPL_V3_ADDRESS) {
@@ -119,7 +125,19 @@ export function handleNewAcoPool(event: NewAcoPool): void {
       acoPool.poolAdmin = poolAdmin.value as Address
     }
   }
+  if (acoPool.poolAdmin != null) {
+    acoPool.poolAdminsHistoryCount = ONE_BI
+  } else {
+    acoPool.poolAdminsHistoryCount = ZERO_BI
+  }
 
   ACOPoolTemplate.create(event.params.acoPool)
   acoPool.save()
+
+  setAcoPoolStrategyHistory(event.params.acoPool, acoPool.strategy, event.transaction, tx)
+  setAcoPoolBaseVolatilityHistory(event.params.acoPool, acoPool.baseVolatility, event.transaction, tx)
+  setAcoPoolPermissionHistory(event.params.acoPool, acoPool.tolerancePriceBelowMin, acoPool.tolerancePriceBelowMax, acoPool.tolerancePriceAboveMin, acoPool.tolerancePriceAboveMax, acoPool.minExpiration, acoPool.maxExpiration, event.transaction, tx)
+  if (acoPool.poolAdmin != null) {
+    setAcoPoolAdminHistory(event.params.acoPool, acoPool.poolAdmin as Bytes, event.transaction, tx)
+  }
 }

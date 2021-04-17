@@ -58,6 +58,7 @@ templates:
         - Exercise
         - ExercisedAccount
         - ACOAccount
+        - AccountRedeem
       abis:
         - name: ACOFactory
           file: ./abis/ACOFactory.json
@@ -91,6 +92,10 @@ templates:
         - ACOPool2
         - Token
         - Transaction
+        - ACOPoolPermission
+        - ACOPoolBaseVolatility
+        - ACOPoolStrategy
+        - ACOPoolAdmin
       abis:
         - name: ACOPoolFactory2
           file: ./abis/ACOPoolFactory2.json
@@ -125,6 +130,10 @@ templates:
         - Deposit
         - ACOCreatorPermission
         - ACOOnPool
+        - ACOPoolPermission
+        - ACOPoolBaseVolatility
+        - ACOPoolStrategy
+        - ACOPoolAdmin
       abis:
         - name: ACOToken
           file: ./abis/ACOToken.json
