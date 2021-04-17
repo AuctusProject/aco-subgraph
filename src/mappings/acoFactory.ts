@@ -100,6 +100,8 @@ function setAco(
   aco.exercisesCount = ZERO_BI
   aco.accountsCount = ZERO_BI
   aco.swapsCount = ZERO_BI
+  aco.accountRedeemsCount = ZERO_BI
+  aco.holdersCount = ZERO_BI
   let acoTokenSituation = getAcoTokenSituation(acoToken, null) as ACOTokenSituation
   aco.situation = acoTokenSituation.id
 
