@@ -134,10 +134,11 @@ export function handleNewAcoPool(event: NewAcoPool): void {
   ACOPoolTemplate.create(event.params.acoPool)
   acoPool.save()
 
-  setAcoPoolStrategyHistory(event.params.acoPool, acoPool.strategy, event.transaction, tx)
-  setAcoPoolBaseVolatilityHistory(event.params.acoPool, acoPool.baseVolatility, event.transaction, tx)
-  setAcoPoolPermissionHistory(event.params.acoPool, acoPool.tolerancePriceBelowMin, acoPool.tolerancePriceBelowMax, acoPool.tolerancePriceAboveMin, acoPool.tolerancePriceAboveMax, acoPool.minExpiration, acoPool.maxExpiration, event.transaction, tx)
+  acoPool.lastStrategyHistoryId = setAcoPoolStrategyHistory(event.params.acoPool, acoPool.strategy, event.transaction, tx)
+  acoPool.lastBaseVolatilityHistoryId = setAcoPoolBaseVolatilityHistory(event.params.acoPool, acoPool.baseVolatility, event.transaction, tx)
+  acoPool.lastAcoPoolPermissionHistoryId = setAcoPoolPermissionHistory(event.params.acoPool, acoPool.tolerancePriceBelowMin, acoPool.tolerancePriceBelowMax, acoPool.tolerancePriceAboveMin, acoPool.tolerancePriceAboveMax, acoPool.minExpiration, acoPool.maxExpiration, event.transaction, tx)
   if (acoPool.poolAdmin != null) {
-    setAcoPoolAdminHistory(event.params.acoPool, acoPool.poolAdmin as Bytes, event.transaction, tx)
+    acoPool.lastPoolAdminHistoryId = setAcoPoolAdminHistory(event.params.acoPool, acoPool.poolAdmin as Bytes, event.transaction, tx)
   }
+  acoPool.save()
 }

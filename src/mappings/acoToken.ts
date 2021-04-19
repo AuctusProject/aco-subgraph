@@ -43,6 +43,7 @@ export function handleMint(event: CollateralDeposit): void {
   mint.tx = tx.id
   mint.save()
   aco.mintsCount = aco.mintsCount.plus(ONE_BI)
+  aco.lastMintId = mint.id
   aco.save()
 }
 
@@ -73,6 +74,7 @@ export function handleCollateralWithdraw(event: CollateralWithdraw): void {
       burn.tx = tx.id
       burn.save()
       aco.burnsCount = aco.burnsCount.plus(ONE_BI)
+      aco.lastBurnId = burn.id
       aco.save()
     } else {
       // it is a redeem operation
@@ -83,6 +85,7 @@ export function handleCollateralWithdraw(event: CollateralWithdraw): void {
       redeem.tx = tx.id
       redeem.save()
       aco.accountRedeemsCount = aco.accountRedeemsCount.plus(ONE_BI)
+      aco.lastAccountRedeemId = redeem.id
       aco.save()
     }
   } else {
@@ -173,6 +176,7 @@ export function handleExerciseAssignment(event: Assigned): void {
 
   if (isNew) {
     aco.exercisesCount = aco.exercisesCount.plus(ONE_BI)
+    aco.lastExerciseId = exercise.id
     aco.save()
   }
 }
@@ -307,6 +311,7 @@ function handleSwapOnZrxOrOtc(tokenAmount: BigDecimal, aco: ACOToken, event: Tra
       swap.tx = tx.id
       swap.save()
       aco.swapsCount = aco.swapsCount.plus(ONE_BI)
+      aco.lastSwapId = swap.id
       aco.save()
     }
   }
@@ -366,6 +371,7 @@ function getACOAccount(aco: ACOToken, account: Bytes): ACOAccount {
     acc.situation = accSituation.id
     acc.save()
     aco.accountsCount = aco.accountsCount.plus(ONE_BI)
+    aco.lastAccountId = acc.id
     aco.save()
   }
   return acc

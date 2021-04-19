@@ -26,11 +26,17 @@ type ACOToken @entity {
   tx: Transaction!
   holdersCount: BigInt!
   mintsCount: BigInt!
+  lastMintId: String
   burnsCount: BigInt!
+  lastBurnId: String
   exercisesCount: BigInt!
+  lastExerciseId: String
   accountsCount: BigInt!
+  lastAccountId: String
   swapsCount: BigInt!
+  lastSwapId: String
   accountRedeemsCount: BigInt!
+  lastAccountRedeemId: String
   mints: [Mint!]! @derivedFrom(field: "aco")
   burns: [Burn!]! @derivedFrom(field: "aco")
   exercises: [Exercise!]! @derivedFrom(field: "aco")
@@ -166,18 +172,30 @@ type ACOPool2 @entity {
   lendingPoolReferral: BigInt
   openAcosCount: BigInt!
   holdersCount: BigInt!
-  acosCount: BigInt!
+  acosCount: BigInt! 
+  lastAcoId: String
   acoCreatorsPermissionCount: BigInt!
+  lastAcoCreatorPermissionId: String
   swapsCount: BigInt!
+  lastSwapId: String
   depositsCount: BigInt!
+  lastDepositId: String
   withdrawalsCount: BigInt!
+  lastWithdrawalId: String
   acoRedeemsCount: BigInt!
+  lastAcoRedeemId: String
   collateralRestoresCount: BigInt!
+  lastCollateralRestoreId: String
   accountsCount: BigInt!
+  lastAccountId: String
   acoPoolPermissionsHistoryCount: BigInt!
+  lastAcoPoolPermissionHistoryId: String
   baseVolatilitiesHistoryCount: BigInt!
+  lastBaseVolatilityHistoryId: String
   strategiesHistoryCount: BigInt!
+  lastStrategyHistoryId: String
   poolAdminsHistoryCount: BigInt!
+  lastPoolAdminHistoryId: String
   acos: [ACOOnPool!]! @derivedFrom(field: "pool")
   acoCreatorsPermission: [ACOCreatorPermission!]! @derivedFrom(field: "pool")
   swaps: [PoolSwap!]! @derivedFrom(field: "pool")
