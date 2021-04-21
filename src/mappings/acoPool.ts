@@ -17,7 +17,12 @@ import {
   ACOPoolPermission,
   ACOPoolBaseVolatility,
   ACOPoolStrategy,
-  ACOPoolAdmin
+  ACOPoolAdmin,
+  AggregatorInterface,
+  PoolDynamicData,
+  ACOPoolDynamicData,
+  ACOPoolFactory2,
+  PoolHistoricalShare
 } from '../types/schema'
 import { 
   Swap, 
@@ -51,12 +56,24 @@ import {
   getToken,
   getTransaction,
   ONE_BI,
+  ONE_BD,
   convertTokenToDecimal,
   ZERO_BD,
   ADDRESS_ZERO,
   getCollateralAmount,
-  ZERO_BI
+  ZERO_BI,
+  setAssetConverterHelper,
+  ACO_POOL_IMPL_V1_ADDRESS,
+  ACO_POOL_IMPL_V2_ADDRESS,
+  MINIMUM_POOL_COLLATERAL_VALUE,
+  convertDecimalToToken,
+  getAggregatorInterface,
+  ACO_POOL_FACTORY_ADDRESS,
+  MINIMUM_POOL_SHARE_UPDATE
 } from './helpers'
+import { ACOPool2 as ACOPool2Contract } from '../types/templates/ACOPool2/ACOPool2'
+import { ACOToken as ACOTokenContract } from '../types/templates/ACOPool2/ACOToken'
+import { ACOPoolStrategy as ACOPoolStrategyContract, ACOPoolStrategy__quoteInputQuoteDataStruct } from '../types/templates/ACOPool2/ACOPoolStrategy'
 
 export function handleTransfer(event: Transfer): void {
   let pool = ACOPool2.load(event.address.toHexString()) as ACOPool2
@@ -92,6 +109,8 @@ export function handleTransfer(event: Transfer): void {
       to.balance = to.balance.plus(tokenAmount)
       to.save()
     }
+
+    updatePoolDynamicData(event, pool)
   }
 }
 
@@ -157,6 +176,8 @@ export function handleSwap(event: Swap): void {
   pool.swapsCount = pool.swapsCount.plus(ONE_BI)
   pool.lastSwapId = poolSwap.id
   pool.save()
+
+  updatePoolDynamicData(event, pool)
 }
 
 export function handleRestoreCollateral(event: RestoreCollateral): void {
@@ -185,6 +206,8 @@ export function handleRestoreCollateral(event: RestoreCollateral): void {
   pool.collateralRestoresCount = pool.collateralRestoresCount.plus(ONE_BI)
   pool.lastCollateralRestoreId = collateralRestore.id
   pool.save()
+
+  updatePoolDynamicData(event, pool)
 }
 
 export function handleACORedeem(event: ACORedeemEvent): void {
@@ -210,6 +233,8 @@ export function handleACORedeem(event: ACORedeemEvent): void {
   pool.acoRedeemsCount = pool.acoRedeemsCount.plus(ONE_BI)
   pool.lastAcoRedeemId = acoRedeem.id
   pool.save()
+
+  updatePoolDynamicData(event, pool)
 }
 
 export function handleDeposit(event: DepositEvent): void {
@@ -227,6 +252,8 @@ export function handleDeposit(event: DepositEvent): void {
   pool.depositsCount = pool.depositsCount.plus(ONE_BI)
   pool.lastDepositId = deposit.id
   pool.save()
+
+  updatePoolDynamicData(event, pool)
 }
 
 export function handleWithdraw(event: Withdraw): void {
@@ -259,6 +286,8 @@ export function handleWithdraw(event: Withdraw): void {
   pool.withdrawalsCount = pool.withdrawalsCount.plus(ONE_BI)
   pool.lastWithdrawalId = withdrawal.id
   pool.save()
+
+  updatePoolDynamicData(event, pool)
 }
 
 export function handleNewStrategy(event: SetStrategy): void {
@@ -269,6 +298,8 @@ export function handleNewStrategy(event: SetStrategy): void {
   pool.lastStrategyHistoryId = historyId
   pool.strategy = event.params.newStrategy
   pool.save()
+
+  updatePoolDynamicData(event, pool)
 }
 
 export function handleNewBaseVolatility(event: SetBaseVolatility): void {
@@ -280,14 +311,16 @@ export function handleNewBaseVolatility(event: SetBaseVolatility): void {
   pool.lastBaseVolatilityHistoryId = historyId
   pool.baseVolatility = baseVolatility
   pool.save()
+
+  updatePoolDynamicData(event, pool)
 }
 
 export function handleValidAcoCreator(event: SetValidAcoCreator): void {
-  setAcoCreatorPermission(event.address, event.params.creator, event.params.newPermission, null as boolean)
+  setAcoCreatorPermission(event, event.address, event.params.creator, event.params.newPermission, null as boolean)
 }
 
 export function handleForbiddenAcoCreator(event: SetForbiddenAcoCreator): void {
-  setAcoCreatorPermission(event.address, event.params.creator, null as boolean, event.params.newStatus)
+  setAcoCreatorPermission(event, event.address, event.params.creator, null as boolean, event.params.newStatus)
 }
 
 export function handleNewPoolAdmin(event: SetPoolAdmin): void {
@@ -322,10 +355,15 @@ export function handleNewAcoPermissionConfig(event: SetAcoPermissionConfig): voi
   pool.tolerancePriceBelowMax = tolerancePriceBelowMax
   pool.tolerancePriceBelowMin = tolerancePriceBelowMin
   pool.save()
+
+  updatePoolDynamicData(event, pool)
 }
 
 export function handleNewProtocolConfig(event: SetProtocolConfig): void {
   let pool = ACOPool2.load(event.address.toHexString()) as ACOPool2
+  if (pool.assetConverter.toHexString() != event.params.newConfig.assetConverter.toHexString()) {
+    setAssetConverterHelper(event.transaction, event.block, event.params.newConfig.assetConverter, Address.fromString(pool.underlying), Address.fromString(pool.strikeAsset))
+  } 
   pool.assetConverter = event.params.newConfig.assetConverter
   pool.maximumOpenAco = event.params.newConfig.maximumOpenAco
   pool.lendingPoolReferral = event.params.newConfig.lendingPoolReferral as BigInt
@@ -334,6 +372,8 @@ export function handleNewProtocolConfig(event: SetProtocolConfig): void {
   pool.underlyingPriceAdjustPercentage = convertTokenToDecimal(event.params.newConfig.underlyingPriceAdjustPercentage, BigInt.fromI32(5))
   pool.withdrawOpenPositionPenalty = convertTokenToDecimal(event.params.newConfig.withdrawOpenPositionPenalty, BigInt.fromI32(5))
   pool.save()
+
+  updatePoolDynamicData(event, pool)
 }
 
 export function handleNewLendingPoolReferral(event: SetLendingPoolReferral): void {
@@ -374,6 +414,8 @@ export function handleNewPoolDataForAcoPermission(event: SetPoolDataForAcoPermis
   pool.acoPoolPermissionsHistoryCount = pool.acoPoolPermissionsHistoryCount.plus(ONE_BI) 
   pool.lastAcoPoolPermissionHistoryId = historyId
   pool.save()
+
+  updatePoolDynamicData(event, pool)
 }
 
 export function handleNewFeeData(event: SetFeeData): void {
@@ -381,12 +423,19 @@ export function handleNewFeeData(event: SetFeeData): void {
   pool.fee = convertTokenToDecimal(event.params.newFee, BigInt.fromI32(5))
   pool.feeDestination = event.params.newFeeDestination
   pool.save()
+
+  updatePoolDynamicData(event, pool)
 }
 
 export function handleNewAssetConverter(event: SetAssetConverter): void {
   let pool = ACOPool2.load(event.address.toHexString()) as ACOPool2
+  if (pool.assetConverter.toHexString() != event.params.newAssetConverter.toHexString()) {
+    setAssetConverterHelper(event.transaction, event.block, event.params.newAssetConverter, Address.fromString(pool.underlying), Address.fromString(pool.strikeAsset))
+  } 
   pool.assetConverter = event.params.newAssetConverter
   pool.save()
+
+  updatePoolDynamicData(event, pool)
 }
 
 export function handleNewTolerancePriceAbove(event: SetTolerancePriceAbove): void {
@@ -415,6 +464,8 @@ export function handleNewTolerancePriceAbove(event: SetTolerancePriceAbove): voi
   pool.acoPoolPermissionsHistoryCount = pool.acoPoolPermissionsHistoryCount.plus(ONE_BI) 
   pool.lastAcoPoolPermissionHistoryId = historyId
   pool.save()
+
+  updatePoolDynamicData(event, pool)
 }
 
 export function handleNewTolerancePriceBelow(event: SetTolerancePriceBelow): void {
@@ -443,6 +494,8 @@ export function handleNewTolerancePriceBelow(event: SetTolerancePriceBelow): voi
   pool.acoPoolPermissionsHistoryCount = pool.acoPoolPermissionsHistoryCount.plus(ONE_BI) 
   pool.lastAcoPoolPermissionHistoryId = historyId
   pool.save()
+
+  updatePoolDynamicData(event, pool)
 }
 
 export function handleNewMinExpiration(event: SetMinExpiration): void {
@@ -453,6 +506,8 @@ export function handleNewMinExpiration(event: SetMinExpiration): void {
   pool.acoPoolPermissionsHistoryCount = pool.acoPoolPermissionsHistoryCount.plus(ONE_BI) 
   pool.lastAcoPoolPermissionHistoryId = historyId
   pool.save()
+
+  updatePoolDynamicData(event, pool)
 }
 
 export function handleNewMaxExpiration(event: SetMaxExpiration): void {
@@ -463,18 +518,24 @@ export function handleNewMaxExpiration(event: SetMaxExpiration): void {
   pool.acoPoolPermissionsHistoryCount = pool.acoPoolPermissionsHistoryCount.plus(ONE_BI) 
   pool.lastAcoPoolPermissionHistoryId = historyId
   pool.save()
+
+  updatePoolDynamicData(event, pool)
 }
 
 export function handleNewWithdrawOpenPositionPenalty(event: SetWithdrawOpenPositionPenalty): void {
   let pool = ACOPool2.load(event.address.toHexString()) as ACOPool2
   pool.withdrawOpenPositionPenalty = convertTokenToDecimal(event.params.newWithdrawOpenPositionPenalty, BigInt.fromI32(5))
   pool.save()
+
+  updatePoolDynamicData(event, pool)
 }
 
 export function handleNewUnderlyingPriceAdjustPercentage(event: SetUnderlyingPriceAdjustPercentage): void {
   let pool = ACOPool2.load(event.address.toHexString()) as ACOPool2
   pool.underlyingPriceAdjustPercentage = convertTokenToDecimal(event.params.newUnderlyingPriceAdjustPercentage, BigInt.fromI32(5))
   pool.save()
+
+  updatePoolDynamicData(event, pool)
 }
 
 export function handleNewMaximumOpenAco(event: SetMaximumOpenAco): void {
@@ -487,6 +548,8 @@ export function handleNewFee(event: SetFee): void {
   let pool = ACOPool2.load(event.address.toHexString()) as ACOPool2
   pool.fee = convertTokenToDecimal(event.params.newFee, BigInt.fromI32(5))
   pool.save()
+
+  updatePoolDynamicData(event, pool)
 }
 
 export function handleNewFeeDestination(event: SetFeeDestination): void {
@@ -511,7 +574,7 @@ function getPoolAccount(pool: ACOPool2, account: Bytes): PoolAccount {
   return acc
 }
 
-function setAcoCreatorPermission(poolAddress: Address, creator: Address, isValid: boolean, isForbidden: boolean): void {
+function setAcoCreatorPermission(event: ethereum.Event, poolAddress: Address, creator: Address, isValid: boolean, isForbidden: boolean): void {
   let pool = ACOPool2.load(poolAddress.toHexString()) as ACOPool2
   let acoCreatorPermission = ACOCreatorPermission.load(poolAddress.toHexString() + "-" + creator.toHexString()) as ACOCreatorPermission
   if (acoCreatorPermission == null) {
@@ -531,6 +594,8 @@ function setAcoCreatorPermission(poolAddress: Address, creator: Address, isValid
     acoCreatorPermission.isForbidden = isForbidden
   }
   acoCreatorPermission.save()
+  
+  updatePoolDynamicData(event, pool)
 }
 
 export function setAcoPoolPermissionHistory(
@@ -597,4 +662,270 @@ export function setAcoPoolAdminHistory(
   adm.poolAdmin = admin
   adm.save()
   return adm.id
+}
+
+function updatePoolDynamicData(event: ethereum.Event, pool: ACOPool2): void {
+  if (pool.implementation.toHexString() != ACO_POOL_IMPL_V1_ADDRESS && pool.implementation.toHexString() != ACO_POOL_IMPL_V2_ADDRESS) {
+    let agg = getAggregatorInterface(event, pool.assetConverter, Address.fromString(pool.underlying), Address.fromString(pool.strikeAsset))
+    if (agg != null) {
+      let poolFactory = ACOPoolFactory2.load(ACO_POOL_FACTORY_ADDRESS) as ACOPoolFactory2
+      let poolAcos = new Array<ACOToken>()
+      let expiredIndexes = new Array<i32>()
+      let acos = poolFactory.activeAcos
+      for (let i = 0 as i32; i < acos.length; ++i) {
+        let aco = ACOToken.load(acos[i]) as ACOToken
+        if (event.block.timestamp.ge(aco.expiryTime)) {
+          expiredIndexes.push(i)
+        }
+        if (aco.underlying == pool.underlying && aco.strikeAsset == pool.strikeAsset && aco.isCall == pool.isCall) {
+          poolAcos.push(aco)
+        }
+      }
+      let toRemove = expiredIndexes.reverse() as i32[]
+      if (toRemove.length > 0) {
+        for (let k = 0 as i32; k < toRemove.length; ++k) {
+          let lastIndex = (acos.length - 1) as i32
+          acos[toRemove[k]] = acos[lastIndex] as string
+          acos.pop()
+        }
+        poolFactory.activeAcos = acos
+        poolFactory.save()
+      }
+      setPoolDynamicData(event.block.timestamp, agg, pool, poolAcos.reverse())
+    }
+  }
+}
+
+export function setPoolDynamicData(timestamp: BigInt, agg: AggregatorInterface, pool: ACOPool2, acos: ACOToken[]): void {
+  if (pool.implementation.toHexString() != ACO_POOL_IMPL_V1_ADDRESS && pool.implementation.toHexString() != ACO_POOL_IMPL_V2_ADDRESS) {
+    let poolDynamicData = PoolDynamicData.load(pool.id) as PoolDynamicData
+    if (poolDynamicData == null) {
+      poolDynamicData = new PoolDynamicData(pool.id) as PoolDynamicData
+    }
+    poolDynamicData.underlyingPrice = agg.price
+    poolDynamicData.tx = agg.tx
+
+    let strikeAsset = Token.load(pool.strikeAsset) as Token
+    let underlying = Token.load(pool.underlying) as Token
+    let hasMinimalCollateral = false
+
+    if (pool.totalSupply.gt(ZERO_BD)) {
+      
+      let poolContract = ACOPool2Contract.bind(Address.fromString(pool.id)) as ACOPool2Contract
+      let generalData = poolContract.getGeneralData()
+
+      let notCollateralValue = ZERO_BD
+      let collateralValue = ZERO_BD
+      let totalSupply = convertTokenToDecimal(generalData.value5, pool.decimals) as BigDecimal
+      
+      poolDynamicData.collateralLocked = convertTokenToDecimal(generalData.value2, pool.decimals) as BigDecimal
+      poolDynamicData.collateralOnOpenPosition = convertTokenToDecimal(generalData.value3, pool.decimals) as BigDecimal
+      poolDynamicData.collateralLockedRedeemable = convertTokenToDecimal(generalData.value4, pool.decimals) as BigDecimal
+
+      if (totalSupply.gt(ZERO_BD)) {
+
+        poolDynamicData.underlyingBalance = convertTokenToDecimal(generalData.value0, underlying.decimals) as BigDecimal
+        poolDynamicData.strikeAssetBalance = convertTokenToDecimal(generalData.value1, strikeAsset.decimals) as BigDecimal
+
+        if (pool.isCall) {
+          notCollateralValue = poolDynamicData.strikeAssetBalance
+          collateralValue = agg.price.times(poolDynamicData.underlyingBalance)
+
+          poolDynamicData.collateralLockedValue = agg.price.times(poolDynamicData.collateralLocked)
+          poolDynamicData.openPositionOptionsValue = agg.price.times(poolDynamicData.collateralOnOpenPosition).times(ONE_BD.minus(pool.underlyingPriceAdjustPercentage))
+          poolDynamicData.underlyingPerShare = poolDynamicData.underlyingBalance.plus(poolDynamicData.collateralLocked).minus(poolDynamicData.collateralOnOpenPosition.times(ONE_BD.plus(pool.withdrawOpenPositionPenalty))).div(totalSupply)
+          poolDynamicData.strikeAssetPerShare = notCollateralValue.div(totalSupply)
+        } else {
+          notCollateralValue = agg.price.times(poolDynamicData.underlyingBalance)
+          collateralValue = poolDynamicData.strikeAssetBalance
+
+          poolDynamicData.collateralLockedValue = poolDynamicData.collateralLocked
+          poolDynamicData.openPositionOptionsValue = poolDynamicData.collateralOnOpenPosition
+          poolDynamicData.underlyingPerShare = poolDynamicData.underlyingBalance.div(totalSupply)
+          poolDynamicData.strikeAssetPerShare = poolDynamicData.strikeAssetBalance.plus(poolDynamicData.collateralLocked).minus(poolDynamicData.collateralOnOpenPosition.times(ONE_BD.plus(pool.withdrawOpenPositionPenalty))).div(totalSupply)
+        }
+        poolDynamicData.netValue = poolDynamicData.collateralLockedValue.minus(poolDynamicData.openPositionOptionsValue)
+        poolDynamicData.totalValue = collateralValue.plus(notCollateralValue).plus(poolDynamicData.netValue)
+        poolDynamicData.save()
+
+        hasMinimalCollateral = collateralValue.ge(MINIMUM_POOL_COLLATERAL_VALUE)
+      } else {
+        setZeroPoolDynamicData(poolDynamicData)
+      }
+    } else {
+      setZeroPoolDynamicData(poolDynamicData)
+    }
+    pool.dynamicData = poolDynamicData.id
+    
+    setPoolHistoricalShare(timestamp, agg.tx, poolDynamicData, pool)
+
+    setAcoPoolDynamicData(hasMinimalCollateral, timestamp, strikeAsset, underlying, agg, pool, acos)
+
+    pool.save()
+  }
+}
+
+function setZeroPoolDynamicData(poolDynamicData: PoolDynamicData): void {
+  poolDynamicData.strikeAssetBalance = ZERO_BD
+  poolDynamicData.underlyingBalance = ZERO_BD
+  poolDynamicData.underlyingPerShare = ZERO_BD
+  poolDynamicData.strikeAssetPerShare = ZERO_BD
+  poolDynamicData.collateralOnOpenPosition = ZERO_BD
+  poolDynamicData.collateralLockedRedeemable = ZERO_BD
+  poolDynamicData.collateralLocked = ZERO_BD
+  poolDynamicData.collateralLockedValue = ZERO_BD
+  poolDynamicData.openPositionOptionsValue = ZERO_BD
+  poolDynamicData.netValue = ZERO_BD
+  poolDynamicData.totalValue = ZERO_BD
+  poolDynamicData.save()
+}
+
+function setAcoPoolDynamicData(
+  hasMinimalCollateral: boolean, 
+  timestamp: BigInt, 
+  strikeAsset: Token,
+  underlying: Token,
+  agg: AggregatorInterface, 
+  pool: ACOPool2, 
+  acos: ACOToken[]): void {
+
+  let poolContract = ACOPool2Contract.bind(Address.fromString(pool.id)) as ACOPool2Contract
+
+  for (let i = 0 as i32; i < acos.length; ++i) {
+    let aco = acos[i] as ACOToken
+    
+    let acoDynamicDataId = aco.id + "-" + pool.id
+    let acoDynamicData = ACOPoolDynamicData.load(acoDynamicDataId) as ACOPoolDynamicData
+
+    let price = null as BigDecimal
+    let isNew = false
+
+    let acoContract = ACOTokenContract.bind(Address.fromString(aco.id)) as ACOTokenContract
+    let collaterizedTokens = acoContract.try_currentCollateralizedTokens(Address.fromString(pool.id))
+    
+    if (!collaterizedTokens.reverted && collaterizedTokens.value.gt(ZERO_BI)) {
+      let collateralLocked = convertTokenToDecimal(collaterizedTokens.value, underlying.decimals)
+      if (collateralLocked.gt(ZERO_BD)) {
+        if (acoDynamicData == null) {
+          isNew = true
+          acoDynamicData = new ACOPoolDynamicData(acoDynamicDataId) as ACOPoolDynamicData
+          acoDynamicData.pool = pool.id
+          acoDynamicData.aco = aco.id
+        }
+        if (timestamp.ge(aco.expiryTime)) {
+          acoDynamicData.openPositionOptionsValue = ZERO_BD
+          acoDynamicData.collateralLocked = ZERO_BD
+          acoDynamicData.collateralLockedValue = ZERO_BD
+          acoDynamicData.collateralOnExpire = collateralLocked
+        } else {
+          if (aco.isCall) {
+            acoDynamicData.collateralLocked = collateralLocked
+            acoDynamicData.collateralLockedValue = collateralLocked.times(agg.price)
+          } else {
+            acoDynamicData.collateralLocked = collateralLocked.times(aco.strikePrice)
+            acoDynamicData.collateralLockedValue = acoDynamicData.collateralLocked
+          }
+          price = getPoolStrategyPrice(agg, pool, aco, strikeAsset)
+          if (price != null) {
+            let priceWithFee = price.times(ONE_BD.plus(pool.fee))
+            acoDynamicData.openPositionOptionsValue = collateralLocked.times(priceWithFee)
+          } else {
+            acoDynamicData.openPositionOptionsValue = ZERO_BD
+          }
+        }
+      } else if (acoDynamicData != null) {
+        acoDynamicData.collateralLocked = ZERO_BD
+        acoDynamicData.collateralLockedValue = ZERO_BD
+        acoDynamicData.openPositionOptionsValue = ZERO_BD
+        if (timestamp.ge(aco.expiryTime)) {
+          acoDynamicData.collateralOnExpire = ZERO_BD
+        }
+      }
+    } else if (acoDynamicData != null) {
+      acoDynamicData.collateralLocked = ZERO_BD
+      acoDynamicData.collateralLockedValue = ZERO_BD
+      acoDynamicData.openPositionOptionsValue = ZERO_BD
+      if (timestamp.ge(aco.expiryTime)) {
+        acoDynamicData.collateralOnExpire = ZERO_BD
+      }
+    }
+
+    if (hasMinimalCollateral && timestamp.lt(aco.expiryTime)) {
+      let canSwapResult = poolContract.try_canSwap(Address.fromString(aco.id))
+      if (!canSwapResult.reverted && canSwapResult.value) {
+        if (price == null) {
+          price = getPoolStrategyPrice(agg, pool, aco, strikeAsset)
+        }
+        if (price != null && acoDynamicData == null) {
+          isNew = true
+          acoDynamicData = new ACOPoolDynamicData(acoDynamicDataId) as ACOPoolDynamicData
+          acoDynamicData.pool = pool.id
+          acoDynamicData.aco = aco.id
+          acoDynamicData.collateralLocked = ZERO_BD
+          acoDynamicData.collateralLockedValue = ZERO_BD
+          acoDynamicData.openPositionOptionsValue = ZERO_BD
+        }
+      } else {
+        price = null as BigDecimal
+      }
+    } else {
+      price = null as BigDecimal
+    }
+    
+    if (acoDynamicData != null) {
+      if (isNew) {
+        pool.acosDynamicDataCount = pool.acosDynamicDataCount.plus(ONE_BI)
+        pool.lastAcoDynamicDataId = acoDynamicData.id
+      }
+      acoDynamicData.netValue = acoDynamicData.collateralLockedValue.minus(acoDynamicData.openPositionOptionsValue)
+      acoDynamicData.price = price
+      acoDynamicData.tx = agg.tx
+      acoDynamicData.save()
+    }
+  }
+}
+
+function getPoolStrategyPrice(agg: AggregatorInterface, pool: ACOPool2, aco: ACOToken, strikeAsset: Token): BigDecimal {
+  let strategy = ACOPoolStrategyContract.bind(Address.fromString(pool.strategy.toHexString())) as ACOPoolStrategyContract
+  let input = new Array<ethereum.Value>()
+  input.push(ethereum.Value.fromUnsignedBigInt(convertDecimalToToken(agg.price, strikeAsset.decimals)))
+  input.push(ethereum.Value.fromAddress(Address.fromString(aco.underlying)))
+  input.push(ethereum.Value.fromAddress(Address.fromString(aco.strikeAsset)))
+  input.push(ethereum.Value.fromBoolean(aco.isCall))
+  input.push(ethereum.Value.fromUnsignedBigInt(convertDecimalToToken(aco.strikePrice, strikeAsset.decimals)))
+  input.push(ethereum.Value.fromUnsignedBigInt(aco.expiryTime))
+  input.push(ethereum.Value.fromUnsignedBigInt(convertDecimalToToken(pool.baseVolatility, BigInt.fromI32(5))))
+  input.push(ethereum.Value.fromUnsignedBigInt(ZERO_BI))
+  input.push(ethereum.Value.fromUnsignedBigInt(ONE_BI))
+  let quoteData = input as ACOPoolStrategy__quoteInputQuoteDataStruct
+  let quote = strategy.try_quote(quoteData)
+  if (!quote.reverted) {
+    return convertTokenToDecimal(quote.value.value0, strikeAsset.decimals) as BigDecimal
+  }
+  return null as BigDecimal
+}
+
+function setPoolHistoricalShare(timestamp: BigInt, txHash: string, poolDynamicData: PoolDynamicData, pool: ACOPool2): void {
+  if ((timestamp.minus(pool.lastHistoricalShareUpdate)).ge(MINIMUM_POOL_SHARE_UPDATE)) {
+    if (pool.lastHistoricalShareId != null) {
+      let last = PoolHistoricalShare.load(pool.lastHistoricalShareId) as PoolHistoricalShare
+      if (last != null && last.underlyingPerShare.equals(poolDynamicData.underlyingPerShare) && 
+        last.strikeAssetPerShare.equals(poolDynamicData.strikeAssetPerShare)) {
+        return
+      }
+    } 
+    if (pool.lastHistoricalShareId != null || poolDynamicData.underlyingPerShare.gt(ZERO_BD) 
+      || poolDynamicData.strikeAssetPerShare.gt(ZERO_BD)) {
+      let historicalShare = new PoolHistoricalShare(pool.id + "-" + txHash) as PoolHistoricalShare
+      historicalShare.pool = pool.id
+      historicalShare.tx = txHash
+      historicalShare.underlyingPerShare = poolDynamicData.underlyingPerShare
+      historicalShare.strikeAssetPerShare = poolDynamicData.strikeAssetPerShare
+      historicalShare.save()
+      
+      pool.historicalSharesCount = pool.historicalSharesCount.plus(ONE_BI)
+      pool.lastHistoricalShareUpdate = timestamp
+      pool.lastHistoricalShareId = historicalShare.id
+    }
+  }
 }

@@ -1,6 +1,10 @@
 import { Bytes, BigInt, BigDecimal, Address, dataSource, ethereum } from '@graphprotocol/graph-ts'
 import { ERC20 } from '../types/ACOFactory/ERC20'
-import { Token, Transaction, ACOTokenSituation } from '../types/schema'
+import { Token, Transaction, ACOTokenSituation, AggregatorProxy, AggregatorInterface, ACOAssetConverterHelper, ACOPoolFactory2 } from '../types/schema'
+import { ACOAssetConverterHelper as ACOAssetConverterHelperContract } from '../types/templates/ACOAssetConverterHelper/ACOAssetConverterHelper'
+import { AggregatorProxy as AggregatorProxyContract } from '../types/templates/AggregatorProxy/AggregatorProxy'
+import { AggregatorInterface as AggregatorInterfaceContract } from '../types/templates/AggregatorInterface/AggregatorInterface'
+import { ACOAssetConverterHelper as AssetConverterTemplate, AggregatorProxy as AggregatorProxyTemplate, AggregatorInterface as AggregatorInterfaceTemplate } from '../types/templates'
 
 let network = dataSource.network()
 
@@ -57,9 +61,12 @@ export let ACO_POOL_IMPL_V2_ADDRESS = ACO_POOL_IMPLEMENTATION_V2
 export let ACO_POOL_IMPL_V3_ADDRESS = ACO_POOL_IMPLEMENTATION_V3
 export let ACO_POOL_IMPL_V4_ADDRESS = ACO_POOL_IMPLEMENTATION_V4
 
+export let MINIMUM_POOL_COLLATERAL_VALUE = BigDecimal.fromString('1000')
+export let MINIMUM_POOL_SHARE_UPDATE = BigInt.fromI32(1200)
 export let ZERO_BI = BigInt.fromI32(0)
 export let ONE_BI = BigInt.fromI32(1)
 export let ZERO_BD = BigDecimal.fromString('0')
+export let ONE_BD = BigDecimal.fromString('1')
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000'
 
@@ -82,7 +89,7 @@ export function convertDecimalToToken(value: BigDecimal, decimals: BigInt): BigI
   if (decimals == ZERO_BI) {
     return BigInt.fromString(value.toString())
   }
-  return BigInt.fromString((value.times(exponentToBigDecimal(decimals))).toString())
+  return BigInt.fromString((value.times(exponentToBigDecimal(decimals))).toString().split('.')[0])
 }
 
 export function equalToZero(value: BigDecimal): boolean {
@@ -190,11 +197,19 @@ export function getToken(tokenAddress: Address): Token {
 }
 
 export function getTransaction(event: ethereum.Event): Transaction {
-  let tx = Transaction.load(event.transaction.hash.toHexString()) as Transaction
+  return getTransactionByData(event.transaction, event.block)
+}
+
+export function getTransactionByCall(call: ethereum.Call): Transaction {
+  return getTransactionByData(call.transaction, call.block)
+}
+
+export function getTransactionByData(transaction: ethereum.Transaction, block: ethereum.Block): Transaction {
+  let tx = Transaction.load(transaction.hash.toHexString()) as Transaction
   if (tx == null) {
-    tx = new Transaction(event.transaction.hash.toHexString()) as Transaction
-    tx.block = event.block.number
-    tx.timestamp = event.block.timestamp
+    tx = new Transaction(transaction.hash.toHexString()) as Transaction
+    tx.block = block.number
+    tx.timestamp = block.timestamp
     tx.save()
   }
   return tx
@@ -244,4 +259,147 @@ export function getCollateralAmount(
   } else {
     return tokenAmount.times(strikePrice)
   }
+}
+
+export function getAggregatorInterface(event: ethereum.Event, assetConverter: Bytes, baseAsset: Bytes, quoteAsset: Bytes): AggregatorInterface {
+  let acContract = ACOAssetConverterHelperContract.bind(Address.fromString(assetConverter.toHexString())) as ACOAssetConverterHelperContract
+  let pairDataResult = acContract.try_getPairData(Address.fromString(baseAsset.toHexString()), Address.fromString(quoteAsset.toHexString()))
+  if (!pairDataResult.reverted && pairDataResult.value.value0.toHexString() != ADDRESS_ZERO) {
+    let proxy = AggregatorProxy.load(pairDataResult.value.value0.toHexString()) as AggregatorProxy
+    let tx = null as Transaction
+    let isNew = false
+    if (proxy == null) {
+      isNew = true
+      tx = getTransaction(event) as Transaction
+      proxy = new AggregatorProxy(pairDataResult.value.value0.toHexString()) as AggregatorProxy
+      proxy.assetConverter = assetConverter.toHexString()
+      proxy.baseAsset = baseAsset
+      proxy.quoteAsset = quoteAsset
+      proxy.tx = tx.id
+      let proxyContract = AggregatorProxyContract.bind(pairDataResult.value.value0) as AggregatorProxyContract
+      let aggResult = proxyContract.try_aggregator()
+      if (!aggResult.reverted && aggResult.value.toHexString() != ADDRESS_ZERO) {
+        proxy.aggregator = aggResult.value.toHexString()
+      } else {
+        return null as AggregatorInterface
+      }
+    }
+    let aggContract = AggregatorInterfaceContract.bind(Address.fromString(proxy.aggregator)) as AggregatorInterfaceContract
+    let agg = AggregatorInterface.load(proxy.aggregator) as AggregatorInterface
+    if (agg == null) {
+      agg = new AggregatorInterface(proxy.aggregator) as AggregatorInterface
+      agg.proxy = pairDataResult.value.value0.toHexString()
+      let decimalsResult = aggContract.try_decimals()
+      if (!decimalsResult.reverted) {
+        agg.decimals = BigInt.fromI32(decimalsResult.value)
+      } else {
+        return null as AggregatorInterface
+      }
+    } else if (agg.proxy != pairDataResult.value.value0.toHexString()) {
+      agg.proxy = pairDataResult.value.value0.toHexString()
+    }
+    let answer = aggContract.try_latestAnswer()
+    let timestamp = aggContract.try_latestTimestamp()
+    if (!answer.reverted && !timestamp.reverted) {
+      if (tx == null) {
+        tx = getTransaction(event) as Transaction
+      }
+      agg.price = convertTokenToDecimal(answer.value, agg.decimals)
+      agg.oracleUpdatedAt = timestamp.value
+      agg.tx = tx.id
+      agg.save()
+      if (isNew) {
+        proxy.save()
+      }
+      return agg
+    }
+  }
+  return null as AggregatorInterface
+}
+
+export function setAssetConverterHelper(
+  transaction: ethereum.Transaction, 
+  block: ethereum.Block, 
+  assetConverter: Bytes, 
+  baseAsset: Bytes, 
+  quoteAsset: Bytes): AggregatorInterface {
+  let agg = null as AggregatorInterface
+  if (assetConverter != null) {
+    let ac = ACOAssetConverterHelper.load(assetConverter.toHexString()) as ACOAssetConverterHelper
+    if (ac == null) {
+      ac = new ACOAssetConverterHelper(assetConverter.toHexString()) as ACOAssetConverterHelper
+      AssetConverterTemplate.create(Address.fromString(assetConverter.toHexString()))
+      ac.save()
+    }
+    let acContract = ACOAssetConverterHelperContract.bind(Address.fromString(assetConverter.toHexString())) as ACOAssetConverterHelperContract
+    let pairDataResult = acContract.try_getPairData(Address.fromString(baseAsset.toHexString()), Address.fromString(quoteAsset.toHexString()))
+    if (!pairDataResult.reverted && pairDataResult.value.value0.toHexString() != ADDRESS_ZERO) {
+      agg = setAggregatorProxy(transaction, block, assetConverter, pairDataResult.value.value0, baseAsset, quoteAsset)
+    }
+  }
+  return agg
+}
+
+export function setAggregatorProxy(
+  transaction: ethereum.Transaction, 
+  block: ethereum.Block, 
+  assetConverter: Bytes,
+  proxyAddress: Bytes, 
+  baseAsset: Bytes, 
+  quoteAsset: Bytes): AggregatorInterface {
+  if (baseAsset != null && quoteAsset != null && baseAsset.toHexString() != quoteAsset.toHexString()) {
+    let proxy = AggregatorProxy.load(proxyAddress.toHexString()) as AggregatorProxy
+    let isNew = false
+    if (proxy == null) {
+      isNew = true
+      proxy = new AggregatorProxy(proxyAddress.toHexString()) as AggregatorProxy
+    }
+    let tx = getTransactionByData(transaction, block) as Transaction
+    proxy.tx = tx.id
+    proxy.quoteAsset = quoteAsset
+    proxy.baseAsset = baseAsset
+    proxy.assetConverter = assetConverter.toHexString()
+
+    let proxyContract = AggregatorProxyContract.bind(Address.fromString(proxyAddress.toHexString())) as AggregatorProxyContract
+    let aggResult = proxyContract.aggregator()
+    let agg = setAggregatorInterface(transaction, block, proxyAddress, aggResult)
+    proxy.aggregator = agg.id
+
+    if (isNew) {    
+      AggregatorProxyTemplate.create(Address.fromString(proxyAddress.toHexString()))
+    }
+    proxy.save()
+    return agg
+  }
+  return null as AggregatorInterface
+}
+
+export function setAggregatorInterface(
+  transaction: ethereum.Transaction, 
+  block : ethereum.Block, 
+  proxy: Bytes, 
+  aggregator: Bytes): AggregatorInterface {
+  let aggContract = AggregatorInterfaceContract.bind(Address.fromString(aggregator.toHexString())) as AggregatorInterfaceContract
+  let agg = AggregatorInterface.load(aggregator.toHexString()) as AggregatorInterface
+  let isNew = false
+  if (agg == null) {
+    isNew = true
+    let decimals = aggContract.decimals()
+    agg = new AggregatorInterface(aggregator.toHexString()) as AggregatorInterface
+    agg.proxy = proxy.toHexString()
+    agg.decimals = BigInt.fromI32(decimals)
+  } else if (proxy.toHexString() != agg.proxy) {
+    agg.proxy = proxy.toHexString()
+  }
+  let answer = aggContract.latestAnswer()
+  let timestamp = aggContract.latestTimestamp()
+  let tx = getTransactionByData(transaction, block) as Transaction
+  agg.price = convertTokenToDecimal(answer, agg.decimals)
+  agg.oracleUpdatedAt = timestamp
+  agg.tx = tx.id
+  if (isNew) {
+    AggregatorInterfaceTemplate.create(Address.fromString(aggregator.toHexString()))
+  }
+  agg.save()
+  return agg
 }

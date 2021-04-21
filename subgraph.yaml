@@ -96,9 +96,18 @@ templates:
         - ACOPoolBaseVolatility
         - ACOPoolStrategy
         - ACOPoolAdmin
+        - ACOAssetConverterHelper
+        - AggregatorProxy
+        - AggregatorInterface
       abis:
         - name: ACOPoolFactory2
           file: ./abis/ACOPoolFactory2.json
+        - name: ACOAssetConverterHelper
+          file: ./abis/ACOAssetConverterHelper.json
+        - name: AggregatorProxy
+          file: ./abis/AggregatorProxy.json
+        - name: AggregatorInterface
+          file: ./abis/AggregatorInterface.json
         - name: ACOPool2
           file: ./abis/ACOPool2.json
         - name: ERC20
@@ -135,13 +144,28 @@ templates:
         - ACOPoolBaseVolatility
         - ACOPoolStrategy
         - ACOPoolAdmin
+        - ACOAssetConverterHelper
+        - AggregatorProxy
+        - AggregatorInterface
+        - PoolHistoricalShare
+        - ACOPoolDynamicData
+        - PoolDynamicData
+        - ACOPoolFactory2
       abis:
         - name: ACOToken
           file: ./abis/ACOToken.json
+        - name: ACOAssetConverterHelper
+          file: ./abis/ACOAssetConverterHelper.json
+        - name: AggregatorProxy
+          file: ./abis/AggregatorProxy.json
+        - name: AggregatorInterface
+          file: ./abis/AggregatorInterface.json
         - name: ACOPool2
           file: ./abis/ACOPool2.json
         - name: ERC20
           file: ./abis/ERC20.json
+        - name: ACOPoolStrategy
+          file: ./abis/ACOPoolStrategy.json
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
@@ -195,3 +219,108 @@ templates:
           handler: handleNewFee
         - event: SetFeeDestination(indexed address,indexed address)
           handler: handleNewFeeDestination
+  - kind: ethereum/contract
+    name: ACOAssetConverterHelper
+    network: mainnet
+    source:
+      abi: ACOAssetConverterHelper
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      file: ./src/mappings/aggregator.ts
+      entities:
+        - ACOAssetConverterHelper
+        - AggregatorProxy
+        - AggregatorInterface
+        - Transaction
+        - PoolHistoricalShare
+        - ACOPoolDynamicData
+        - PoolDynamicData
+        - ACOPoolFactory2
+        - ACOPool2
+      abis:
+        - name: ACOAssetConverterHelper
+          file: ./abis/ACOAssetConverterHelper.json
+        - name: AggregatorProxy
+          file: ./abis/AggregatorProxy.json
+        - name: AggregatorInterface
+          file: ./abis/AggregatorInterface.json
+        - name: ACOPoolStrategy
+          file: ./abis/ACOPoolStrategy.json
+        - name: ACOPool2
+          file: ./abis/ACOPool2.json
+        - name: ACOToken
+          file: ./abis/ACOToken.json
+      eventHandlers:
+        - event: SetAggregator(indexed address,indexed address,address,address)
+          handler: handleNewProxyAggregator
+  - kind: ethereum/contract
+    name: AggregatorProxy
+    network: mainnet
+    source:
+      abi: AggregatorProxy
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      file: ./src/mappings/aggregator.ts
+      entities:
+        - AggregatorProxy
+        - AggregatorInterface
+        - Transaction
+        - PoolHistoricalShare
+        - ACOPoolDynamicData
+        - PoolDynamicData
+        - ACOPoolFactory2
+        - ACOPool2
+      abis:
+        - name: ACOAssetConverterHelper
+          file: ./abis/ACOAssetConverterHelper.json
+        - name: AggregatorProxy
+          file: ./abis/AggregatorProxy.json
+        - name: AggregatorInterface
+          file: ./abis/AggregatorInterface.json
+        - name: ACOPoolStrategy
+          file: ./abis/ACOPoolStrategy.json
+        - name: ACOPool2
+          file: ./abis/ACOPool2.json
+        - name: ACOToken
+          file: ./abis/ACOToken.json
+      callHandlers:
+        - function: confirmAggregator(address)
+          handler: handleNewAggregator
+  - kind: ethereum/contract
+    name: AggregatorInterface
+    network: mainnet
+    source:
+      abi: AggregatorInterface
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      file: ./src/mappings/aggregator.ts
+      entities:
+        - AggregatorInterface
+        - Transaction
+        - PoolHistoricalShare
+        - ACOPoolDynamicData
+        - PoolDynamicData
+        - ACOPoolFactory2
+        - ACOPool2
+      abis:
+        - name: ACOAssetConverterHelper
+          file: ./abis/ACOAssetConverterHelper.json
+        - name: AggregatorInterface
+          file: ./abis/AggregatorInterface.json
+        - name: AggregatorProxy
+          file: ./abis/AggregatorProxy.json
+        - name: ACOPoolStrategy
+          file: ./abis/ACOPoolStrategy.json
+        - name: ACOPool2
+          file: ./abis/ACOPool2.json
+        - name: ACOToken
+          file: ./abis/ACOToken.json
+      eventHandlers:
+        - event: AnswerUpdated(indexed int256,indexed uint256,uint256)
+          handler: handleNewAggregatorAnswer

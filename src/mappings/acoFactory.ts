@@ -18,7 +18,7 @@ import {
 } from './helpers'
 
 export function handleNewACODeprecated(event: NewAcoToken): void {
-  createACOPoolFactoryWithNecessary(event)
+  setACOPoolFactory(event.params.acoToken, event)
   let tx = getTransaction(event) as Transaction
   setAco(
     event.params.underlying, 
@@ -33,7 +33,7 @@ export function handleNewACODeprecated(event: NewAcoToken): void {
 }
 
 export function handleNewACO(event: NewAcoTokenData): void {
-  createACOPoolFactoryWithNecessary(event)
+  setACOPoolFactory(event.params.acoToken, event)
   let tx = getTransaction(event) as Transaction
   setAco(
     event.params.underlying, 
@@ -47,11 +47,19 @@ export function handleNewACO(event: NewAcoTokenData): void {
     tx)
 }
 
-function createACOPoolFactoryWithNecessary(event: ethereum.Event): void {
+function setACOPoolFactory(aco: Address, event: ethereum.Event): void {
   let acoPoolFactory = ACOPoolFactory2.load(ACO_POOL_FACTORY_ADDRESS) as ACOPoolFactory2
-  if (acoPoolFactory == null && event.block.number.ge(BigInt.fromI32(ACO_POOL_START))) {
-    acoPoolFactory = new ACOPoolFactory2(ACO_POOL_FACTORY_ADDRESS) as ACOPoolFactory2
-    ACOPoolFactoryTemplate.create(Address.fromString(ACO_POOL_FACTORY_ADDRESS))
+  if (acoPoolFactory == null) {
+    if (event.block.number.ge(BigInt.fromI32(ACO_POOL_START))) {
+      acoPoolFactory = new ACOPoolFactory2(ACO_POOL_FACTORY_ADDRESS) as ACOPoolFactory2
+      acoPoolFactory.pools = []
+      acoPoolFactory.activeAcos = [aco.toHexString()]
+      ACOPoolFactoryTemplate.create(Address.fromString(ACO_POOL_FACTORY_ADDRESS))
+      acoPoolFactory.save()
+    }
+  } else {
+    let acos = acoPoolFactory.activeAcos
+    acoPoolFactory.activeAcos = acos.concat([aco.toHexString()])
     acoPoolFactory.save()
   }
 }

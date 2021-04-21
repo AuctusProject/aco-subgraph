@@ -1,8 +1,8 @@
 import { Address, BigInt, Bytes } from '@graphprotocol/graph-ts'
-import { Transaction, Token, ACOPool2 } from '../types/schema'
+import { Transaction, Token, ACOPool2, ACOPoolFactory2 } from '../types/schema'
 import { NewAcoPool } from '../types/templates/ACOPoolFactory2/ACOPoolFactory2'
 import { ACOPool2 as ACOPoolContract, ACOPool2__acoPermissionConfigResult, ACOPool2__protocolConfigResult } from '../types/templates/ACOPoolFactory2/ACOPool2'
-import { ACOPool2 as ACOPoolTemplate } from '../types/templates'
+import { ACOPool2 as ACOPoolTemplate, ACOPoolFactory2 as ACOPoolFactoryTemplate } from '../types/templates'
 import {
   fetchTokenSymbol,
   fetchTokenName,
@@ -15,11 +15,15 @@ import {
   ACO_POOL_IMPL_V1_ADDRESS,
   ACO_POOL_IMPL_V2_ADDRESS,
   ACO_POOL_IMPL_V3_ADDRESS,
-  ONE_BI
+  ONE_BI,
+  setAssetConverterHelper,
+  ACO_POOL_FACTORY_ADDRESS
 } from './helpers'
 import { setAcoPoolAdminHistory, setAcoPoolBaseVolatilityHistory, setAcoPoolPermissionHistory, setAcoPoolStrategyHistory } from './acoPool'
 
 export function handleNewAcoPool(event: NewAcoPool): void {
+  setACOPoolFactory(event.params.acoPool)
+
   let tx = getTransaction(event) as Transaction
 
   let underlying = getToken(event.params.underlying) as Token
@@ -51,6 +55,9 @@ export function handleNewAcoPool(event: NewAcoPool): void {
   acoPool.strategiesHistoryCount = ONE_BI
   acoPool.baseVolatilitiesHistoryCount = ONE_BI
   acoPool.acoPoolPermissionsHistoryCount = ONE_BI
+  acoPool.acosDynamicDataCount = ZERO_BI
+  acoPool.historicalSharesCount = ZERO_BI
+  acoPool.lastHistoricalShareUpdate = ZERO_BI
   acoPool.gasToken = acoPoolContract.chiToken() as Address
   acoPool.strategy = acoPoolContract.strategy() as Address
   acoPool.baseVolatility = convertTokenToDecimal(acoPoolContract.baseVolatility() as BigInt, BigInt.fromI32(5))
@@ -131,6 +138,8 @@ export function handleNewAcoPool(event: NewAcoPool): void {
     acoPool.poolAdminsHistoryCount = ZERO_BI
   }
 
+  setAssetConverterHelper(event.transaction, event.block, acoPool.assetConverter, event.params.underlying, event.params.strikeAsset)
+
   ACOPoolTemplate.create(event.params.acoPool)
   acoPool.save()
 
@@ -141,4 +150,19 @@ export function handleNewAcoPool(event: NewAcoPool): void {
     acoPool.lastPoolAdminHistoryId = setAcoPoolAdminHistory(event.params.acoPool, acoPool.poolAdmin as Bytes, event.transaction, tx)
   }
   acoPool.save()
+}
+
+function setACOPoolFactory(pool: Address): void {
+  let acoPoolFactory = ACOPoolFactory2.load(ACO_POOL_FACTORY_ADDRESS) as ACOPoolFactory2
+  if (acoPoolFactory == null) {
+    acoPoolFactory = new ACOPoolFactory2(ACO_POOL_FACTORY_ADDRESS) as ACOPoolFactory2
+    acoPoolFactory.pools = [pool.toHexString()]
+    acoPoolFactory.activeAcos = []
+    ACOPoolFactoryTemplate.create(Address.fromString(ACO_POOL_FACTORY_ADDRESS))
+    acoPoolFactory.save()
+  } else {
+    let pools = acoPoolFactory.pools
+    acoPoolFactory.pools = pools.concat([pool.toHexString()])
+    acoPoolFactory.save()
+  }
 }

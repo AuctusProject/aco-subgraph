@@ -5,6 +5,18 @@ type Token @entity {
   decimals: BigInt!
 }
 
+type Transaction @entity {
+  id: ID!
+  timestamp: BigInt!
+  block: BigInt!
+}
+
+type ACOPoolFactory2 @entity {
+  id: ID!
+  pools: [ACOPool2]!
+  activeAcos: [ACOToken]!
+}
+
 type ACOToken @entity {
   id: ID!
   underlying: Token!
@@ -130,16 +142,6 @@ type AccountRedeem @entity {
   tx: Transaction!
 }
 
-type Transaction @entity {
-  id: ID!
-  timestamp: BigInt!
-  block: BigInt!
-}
-
-type ACOPoolFactory2 @entity {
-  id: ID!
-}
-
 type ACOPool2 @entity {
   id: ID!
   underlying: Token!
@@ -208,6 +210,15 @@ type ACOPool2 @entity {
   baseVolatilitiesHistory: [ACOPoolBaseVolatility!]! @derivedFrom(field: "pool")
   strategiesHistory: [ACOPoolStrategy!]! @derivedFrom(field: "pool")
   poolAdminsHistory: [ACOPoolAdmin!]! @derivedFrom(field: "pool")
+
+  dynamicData: PoolDynamicData
+  acosDynamicDataCount: BigInt!
+  lastAcoDynamicDataId: String
+  acosDynamicData: [ACOPoolDynamicData!]! @derivedFrom(field: "pool")
+  lastHistoricalShareUpdate: BigInt!
+  historicalSharesCount: BigInt!
+  lastHistoricalShareId: String
+  historicalShares: [PoolHistoricalShare!]! @derivedFrom(field: "pool")
 }
 
 type ACOOnPool @entity {
@@ -331,4 +342,65 @@ type ACOPoolAdmin @entity {
   caller: Bytes!
   tx: Transaction!
   poolAdmin: Bytes!
+}
+
+type ACOAssetConverterHelper @entity {
+  id: ID!
+  agreggatorsProxy: [AggregatorProxy!]! @derivedFrom(field: "assetConverter")
+}
+
+type AggregatorProxy @entity {
+  id: ID!
+  assetConverter: ACOAssetConverterHelper!
+  baseAsset: Bytes!
+  quoteAsset: Bytes!
+  aggregator: AggregatorInterface!
+  tx: Transaction!
+}
+
+type AggregatorInterface @entity {
+  id: ID!
+  proxy: AggregatorProxy
+  decimals: BigInt!
+  price: BigDecimal!
+  oracleUpdatedAt: BigInt!
+  tx: Transaction!
+}
+
+type PoolDynamicData @entity {
+  id: ID!
+  tx: Transaction!
+  underlyingPrice: BigDecimal! 
+  underlyingBalance: BigDecimal!
+  strikeAssetBalance: BigDecimal!
+  underlyingPerShare: BigDecimal!
+  strikeAssetPerShare: BigDecimal!
+  collateralOnOpenPosition: BigDecimal!
+  collateralLockedRedeemable: BigDecimal!
+  collateralLocked: BigDecimal!
+  collateralLockedValue: BigDecimal!
+  openPositionOptionsValue: BigDecimal!
+  netValue: BigDecimal!
+  totalValue: BigDecimal!
+}
+
+type ACOPoolDynamicData @entity {
+  id: ID!
+  aco: ACOToken!
+  pool: ACOPool2!
+  price: BigDecimal
+  collateralOnExpire: BigDecimal
+  openPositionOptionsValue: BigDecimal!
+  collateralLocked: BigDecimal!
+  collateralLockedValue: BigDecimal!
+  netValue: BigDecimal!
+  tx: Transaction!
+}
+
+type PoolHistoricalShare @entity {
+  id: ID!
+  pool: ACOPool2!
+  tx: Transaction!
+  underlyingPerShare: BigDecimal!
+  strikeAssetPerShare: BigDecimal!
 }
