@@ -1,5 +1,5 @@
 specVersion: 0.0.2
-description: Auctus Options is a decentralized non-custodial protocol for options.
+description: Auctus is a decentralized options protocol. Users can mint and trade call and put options on any ERC20 token.
 repository: https://github.com/AuctusProject/aco-subgraph
 schema:
   file: ./schema.graphql
