@@ -197,19 +197,25 @@ export function getToken(tokenAddress: Address): Token {
 }
 
 export function getTransaction(event: ethereum.Event): Transaction {
-  return getTransactionByData(event.transaction, event.block)
+  return getTransactionByData(event.transaction, event.block, event.logIndex)
 }
 
 export function getTransactionByCall(call: ethereum.Call): Transaction {
-  return getTransactionByData(call.transaction, call.block)
+  return getTransactionByData(call.transaction, call.block, null)
 }
 
-export function getTransactionByData(transaction: ethereum.Transaction, block: ethereum.Block): Transaction {
-  let tx = Transaction.load(transaction.hash.toHexString()) as Transaction
+export function getTransactionByData(transaction: ethereum.Transaction, block: ethereum.Block, logIndex: BigInt): Transaction {
+  let id = transaction.hash.toHexString()
+  if (logIndex != null) {
+    id = id + "-" + logIndex.toString()
+  }
+  let tx = Transaction.load(id) as Transaction
   if (tx == null) {
-    tx = new Transaction(transaction.hash.toHexString()) as Transaction
+    tx = new Transaction(id) as Transaction
     tx.block = block.number
     tx.timestamp = block.timestamp
+    tx.index = transaction.index
+    tx.logIndex = logIndex
     tx.save()
   }
   return tx
@@ -320,6 +326,7 @@ export function getAggregatorInterface(event: ethereum.Event, assetConverter: By
 export function setAssetConverterHelper(
   transaction: ethereum.Transaction, 
   block: ethereum.Block, 
+  logIndex: BigInt,
   assetConverter: Bytes, 
   baseAsset: Bytes, 
   quoteAsset: Bytes): AggregatorInterface {
@@ -334,7 +341,7 @@ export function setAssetConverterHelper(
     let acContract = ACOAssetConverterHelperContract.bind(Address.fromString(assetConverter.toHexString())) as ACOAssetConverterHelperContract
     let pairDataResult = acContract.try_getPairData(Address.fromString(baseAsset.toHexString()), Address.fromString(quoteAsset.toHexString()))
     if (!pairDataResult.reverted && pairDataResult.value.value0.toHexString() != ADDRESS_ZERO) {
-      agg = setAggregatorProxy(transaction, block, assetConverter, pairDataResult.value.value0, baseAsset, quoteAsset)
+      agg = setAggregatorProxy(transaction, block, logIndex, assetConverter, pairDataResult.value.value0, baseAsset, quoteAsset)
     }
   }
   return agg
@@ -343,6 +350,7 @@ export function setAssetConverterHelper(
 export function setAggregatorProxy(
   transaction: ethereum.Transaction, 
   block: ethereum.Block, 
+  logIndex: BigInt,
   assetConverter: Bytes,
   proxyAddress: Bytes, 
   baseAsset: Bytes, 
@@ -354,7 +362,7 @@ export function setAggregatorProxy(
       isNew = true
       proxy = new AggregatorProxy(proxyAddress.toHexString()) as AggregatorProxy
     }
-    let tx = getTransactionByData(transaction, block) as Transaction
+    let tx = getTransactionByData(transaction, block, logIndex) as Transaction
     proxy.tx = tx.id
     proxy.quoteAsset = quoteAsset
     proxy.baseAsset = baseAsset
@@ -362,7 +370,7 @@ export function setAggregatorProxy(
 
     let proxyContract = AggregatorProxyContract.bind(Address.fromString(proxyAddress.toHexString())) as AggregatorProxyContract
     let aggResult = proxyContract.aggregator()
-    let agg = setAggregatorInterface(transaction, block, proxyAddress, aggResult)
+    let agg = setAggregatorInterface(transaction, block, logIndex, proxyAddress, aggResult)
     proxy.aggregator = agg.id
 
     if (isNew) {    
@@ -377,6 +385,7 @@ export function setAggregatorProxy(
 export function setAggregatorInterface(
   transaction: ethereum.Transaction, 
   block : ethereum.Block, 
+  logIndex: BigInt,
   proxy: Bytes, 
   aggregator: Bytes): AggregatorInterface {
   let aggContract = AggregatorInterfaceContract.bind(Address.fromString(aggregator.toHexString())) as AggregatorInterfaceContract
@@ -393,7 +402,7 @@ export function setAggregatorInterface(
   }
   let answer = aggContract.latestAnswer()
   let timestamp = aggContract.latestTimestamp()
-  let tx = getTransactionByData(transaction, block) as Transaction
+  let tx = getTransactionByData(transaction, block, logIndex) as Transaction
   agg.price = convertTokenToDecimal(answer, agg.decimals)
   agg.oracleUpdatedAt = timestamp
   agg.tx = tx.id

@@ -7,12 +7,12 @@ import { Transaction, AggregatorInterface, AggregatorProxy, ACOPoolFactory2, ACO
 import { setPoolDynamicData } from './acoPool'
 
 export function handleNewProxyAggregator(event: SetAggregator): void {
-  let agg = setAggregatorProxy(event.transaction, event.block, event.address, event.params.newAggregator, event.params.baseAsset, event.params.quoteAsset) as AggregatorInterface
+  let agg = setAggregatorProxy(event.transaction, event.block, event.logIndex, event.address, event.params.newAggregator, event.params.baseAsset, event.params.quoteAsset) as AggregatorInterface
   setNewPriceAggregator(event.block.timestamp, agg)
 }
 
 export function handleNewAggregator(call: ConfirmAggregatorCall): void {
-  let agg = setAggregatorInterface(call.transaction, call.block, call.to, call.inputs._aggregator) as AggregatorInterface
+  let agg = setAggregatorInterface(call.transaction, call.block, null, call.to, call.inputs._aggregator) as AggregatorInterface
   setNewPriceAggregator(call.block.timestamp, agg)
 }
 

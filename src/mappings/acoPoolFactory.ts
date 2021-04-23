@@ -138,7 +138,7 @@ export function handleNewAcoPool(event: NewAcoPool): void {
     acoPool.poolAdminsHistoryCount = ZERO_BI
   }
 
-  setAssetConverterHelper(event.transaction, event.block, acoPool.assetConverter, event.params.underlying, event.params.strikeAsset)
+  setAssetConverterHelper(event.transaction, event.block, event.logIndex, acoPool.assetConverter, event.params.underlying, event.params.strikeAsset)
 
   ACOPoolTemplate.create(event.params.acoPool)
   acoPool.save()

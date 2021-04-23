@@ -152,6 +152,7 @@ export function handleSwap(event: Swap): void {
   poolSwap.protocolFee = fee
   poolSwap.underlyingPrice = underlyingPrice
   poolSwap.volatility = volatility
+  poolSwap.collateralLocked = (aco.isCall ? acoAmount : acoAmount.times(aco.strikePrice))
   poolSwap.tx = tx.id
   poolSwap.save()
 
@@ -362,7 +363,7 @@ export function handleNewAcoPermissionConfig(event: SetAcoPermissionConfig): voi
 export function handleNewProtocolConfig(event: SetProtocolConfig): void {
   let pool = ACOPool2.load(event.address.toHexString()) as ACOPool2
   if (pool.assetConverter.toHexString() != event.params.newConfig.assetConverter.toHexString()) {
-    setAssetConverterHelper(event.transaction, event.block, event.params.newConfig.assetConverter, Address.fromString(pool.underlying), Address.fromString(pool.strikeAsset))
+    setAssetConverterHelper(event.transaction, event.block, event.logIndex, event.params.newConfig.assetConverter, Address.fromString(pool.underlying), Address.fromString(pool.strikeAsset))
   } 
   pool.assetConverter = event.params.newConfig.assetConverter
   pool.maximumOpenAco = event.params.newConfig.maximumOpenAco
@@ -430,7 +431,7 @@ export function handleNewFeeData(event: SetFeeData): void {
 export function handleNewAssetConverter(event: SetAssetConverter): void {
   let pool = ACOPool2.load(event.address.toHexString()) as ACOPool2
   if (pool.assetConverter.toHexString() != event.params.newAssetConverter.toHexString()) {
-    setAssetConverterHelper(event.transaction, event.block, event.params.newAssetConverter, Address.fromString(pool.underlying), Address.fromString(pool.strikeAsset))
+    setAssetConverterHelper(event.transaction, event.block, event.logIndex, event.params.newAssetConverter, Address.fromString(pool.underlying), Address.fromString(pool.strikeAsset))
   } 
   pool.assetConverter = event.params.newAssetConverter
   pool.save()
@@ -731,18 +732,24 @@ export function setPoolDynamicData(timestamp: BigInt, agg: AggregatorInterface, 
           notCollateralValue = poolDynamicData.strikeAssetBalance
           collateralValue = agg.price.times(poolDynamicData.underlyingBalance)
 
+          let underlyingTotalShare = poolDynamicData.underlyingBalance.plus(poolDynamicData.collateralLocked).minus(poolDynamicData.collateralOnOpenPosition.times(ONE_BD.plus(pool.withdrawOpenPositionPenalty)))
           poolDynamicData.collateralLockedValue = agg.price.times(poolDynamicData.collateralLocked)
           poolDynamicData.openPositionOptionsValue = agg.price.times(poolDynamicData.collateralOnOpenPosition).times(ONE_BD.minus(pool.underlyingPriceAdjustPercentage))
-          poolDynamicData.underlyingPerShare = poolDynamicData.underlyingBalance.plus(poolDynamicData.collateralLocked).minus(poolDynamicData.collateralOnOpenPosition.times(ONE_BD.plus(pool.withdrawOpenPositionPenalty))).div(totalSupply)
+          poolDynamicData.underlyingPerShare = underlyingTotalShare.div(totalSupply)
           poolDynamicData.strikeAssetPerShare = notCollateralValue.div(totalSupply)
+          poolDynamicData.underlyingTotalShare = underlyingTotalShare
+          poolDynamicData.strikeAssetTotalShare = notCollateralValue
         } else {
           notCollateralValue = agg.price.times(poolDynamicData.underlyingBalance)
           collateralValue = poolDynamicData.strikeAssetBalance
 
+          let strikeAssetTotalShare = poolDynamicData.strikeAssetBalance.plus(poolDynamicData.collateralLocked).minus(poolDynamicData.collateralOnOpenPosition.times(ONE_BD.plus(pool.withdrawOpenPositionPenalty)))
           poolDynamicData.collateralLockedValue = poolDynamicData.collateralLocked
           poolDynamicData.openPositionOptionsValue = poolDynamicData.collateralOnOpenPosition
           poolDynamicData.underlyingPerShare = poolDynamicData.underlyingBalance.div(totalSupply)
-          poolDynamicData.strikeAssetPerShare = poolDynamicData.strikeAssetBalance.plus(poolDynamicData.collateralLocked).minus(poolDynamicData.collateralOnOpenPosition.times(ONE_BD.plus(pool.withdrawOpenPositionPenalty))).div(totalSupply)
+          poolDynamicData.strikeAssetPerShare = strikeAssetTotalShare.div(totalSupply)
+          poolDynamicData.underlyingTotalShare = poolDynamicData.underlyingBalance
+          poolDynamicData.strikeAssetTotalShare = strikeAssetTotalShare
         }
         poolDynamicData.netValue = poolDynamicData.collateralLockedValue.minus(poolDynamicData.openPositionOptionsValue)
         poolDynamicData.totalValue = collateralValue.plus(notCollateralValue).plus(poolDynamicData.netValue)
@@ -770,6 +777,8 @@ function setZeroPoolDynamicData(poolDynamicData: PoolDynamicData): void {
   poolDynamicData.underlyingBalance = ZERO_BD
   poolDynamicData.underlyingPerShare = ZERO_BD
   poolDynamicData.strikeAssetPerShare = ZERO_BD
+  poolDynamicData.underlyingTotalShare = ZERO_BD
+  poolDynamicData.strikeAssetTotalShare = ZERO_BD
   poolDynamicData.collateralOnOpenPosition = ZERO_BD
   poolDynamicData.collateralLockedRedeemable = ZERO_BD
   poolDynamicData.collateralLocked = ZERO_BD
@@ -804,8 +813,8 @@ function setAcoPoolDynamicData(
     let collaterizedTokens = acoContract.try_currentCollateralizedTokens(Address.fromString(pool.id))
     
     if (!collaterizedTokens.reverted && collaterizedTokens.value.gt(ZERO_BI)) {
-      let collateralLocked = convertTokenToDecimal(collaterizedTokens.value, underlying.decimals)
-      if (collateralLocked.gt(ZERO_BD)) {
+      let tokenAmount = convertTokenToDecimal(collaterizedTokens.value, underlying.decimals)
+      if (tokenAmount.gt(ZERO_BD)) {
         if (acoDynamicData == null) {
           isNew = true
           acoDynamicData = new ACOPoolDynamicData(acoDynamicDataId) as ACOPoolDynamicData
@@ -815,38 +824,42 @@ function setAcoPoolDynamicData(
         if (timestamp.ge(aco.expiryTime)) {
           acoDynamicData.openPositionOptionsValue = ZERO_BD
           acoDynamicData.collateralLocked = ZERO_BD
+          acoDynamicData.acoAmount = ZERO_BD
           acoDynamicData.collateralLockedValue = ZERO_BD
-          acoDynamicData.collateralOnExpire = collateralLocked
+          acoDynamicData.acoOnExpire = tokenAmount
         } else {
+          acoDynamicData.acoAmount = tokenAmount
           if (aco.isCall) {
-            acoDynamicData.collateralLocked = collateralLocked
-            acoDynamicData.collateralLockedValue = collateralLocked.times(agg.price)
+            acoDynamicData.collateralLocked = tokenAmount
+            acoDynamicData.collateralLockedValue = tokenAmount.times(agg.price)
           } else {
-            acoDynamicData.collateralLocked = collateralLocked.times(aco.strikePrice)
+            acoDynamicData.collateralLocked = tokenAmount.times(aco.strikePrice)
             acoDynamicData.collateralLockedValue = acoDynamicData.collateralLocked
           }
           price = getPoolStrategyPrice(agg, pool, aco, strikeAsset)
           if (price != null) {
             let priceWithFee = price.times(ONE_BD.plus(pool.fee))
-            acoDynamicData.openPositionOptionsValue = collateralLocked.times(priceWithFee)
+            acoDynamicData.openPositionOptionsValue = tokenAmount.times(priceWithFee)
           } else {
             acoDynamicData.openPositionOptionsValue = ZERO_BD
           }
         }
       } else if (acoDynamicData != null) {
         acoDynamicData.collateralLocked = ZERO_BD
+        acoDynamicData.acoAmount = ZERO_BD
         acoDynamicData.collateralLockedValue = ZERO_BD
         acoDynamicData.openPositionOptionsValue = ZERO_BD
         if (timestamp.ge(aco.expiryTime)) {
-          acoDynamicData.collateralOnExpire = ZERO_BD
+          acoDynamicData.acoOnExpire = ZERO_BD
         }
       }
     } else if (acoDynamicData != null) {
       acoDynamicData.collateralLocked = ZERO_BD
+      acoDynamicData.acoAmount = ZERO_BD
       acoDynamicData.collateralLockedValue = ZERO_BD
       acoDynamicData.openPositionOptionsValue = ZERO_BD
       if (timestamp.ge(aco.expiryTime)) {
-        acoDynamicData.collateralOnExpire = ZERO_BD
+        acoDynamicData.acoOnExpire = ZERO_BD
       }
     }
 
@@ -862,6 +875,7 @@ function setAcoPoolDynamicData(
           acoDynamicData.pool = pool.id
           acoDynamicData.aco = aco.id
           acoDynamicData.collateralLocked = ZERO_BD
+          acoDynamicData.acoAmount = ZERO_BD
           acoDynamicData.collateralLockedValue = ZERO_BD
           acoDynamicData.openPositionOptionsValue = ZERO_BD
         }
