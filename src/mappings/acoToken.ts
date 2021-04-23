@@ -123,6 +123,7 @@ export function handleExerciseAssignment(event: Assigned): void {
   let underlying = Token.load(aco.underlying) as Token
 
   let tokenAmount = convertTokenToDecimal(event.params.tokenAmount, aco.decimals)
+  let collateralAmount = (aco.isCall ? tokenAmount : tokenAmount.times(aco.strikePrice))
 
   // the balances (totalSupply and the exercising account balance) are handled on the `transfer´ event
   // the exercise fees are handle on the `CollateralWithdraw´ event
@@ -146,17 +147,20 @@ export function handleExerciseAssignment(event: Assigned): void {
     exercise.account = event.params.to
     exercise.paidAmount = ZERO_BD
     exercise.tokenAmount = ZERO_BD
+    exercise.collateralAmount = ZERO_BD
     exercise.tx = tx.id
     exercise.exercisedAccountsCount = ZERO_BI
   }
   exercise.paidAmount = exercise.paidAmount.plus(paidAmount)
   exercise.tokenAmount = exercise.tokenAmount.plus(tokenAmount)
+  exercise.collateralAmount = exercise.collateralAmount.plus(collateralAmount)
 
   let exercisedAccount = new ExercisedAccount(event.address.toHexString() + "-" + event.params.from.toHexString() + "-" + event.params.to.toHexString() + "-" + event.transaction.hash.toHexString()) as ExercisedAccount
   exercisedAccount.exercise = exercise.id
   exercisedAccount.account = event.params.from
   exercisedAccount.paymentReceived = paidAmount
   exercisedAccount.exercisedTokens = tokenAmount
+  exercisedAccount.collateralAmount = collateralAmount
     
   let account = getACOAccount(aco, event.params.from) as ACOAccount
   let accountAcoTokenSituation = ACOTokenSituation.load(account.situation) as ACOTokenSituation

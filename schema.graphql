@@ -96,6 +96,7 @@ type Exercise @entity {
   account: Bytes!
   paidAmount: BigDecimal!
   tokenAmount: BigDecimal!
+  collateralAmount: BigDecimal!
   tx: Transaction!
   exercisedAccountsCount: BigInt!
   exercisedAccounts: [ExercisedAccount!]! @derivedFrom(field: "exercise")
@@ -107,6 +108,7 @@ type ExercisedAccount @entity {
   account: Bytes!
   paymentReceived: BigDecimal!
   exercisedTokens: BigDecimal!
+  collateralAmount: BigDecimal!
 }
 
 type ACOAccount @entity {
