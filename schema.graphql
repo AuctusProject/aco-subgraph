@@ -411,4 +411,5 @@ type PoolHistoricalShare @entity {
   tx: Transaction!
   underlyingPerShare: BigDecimal!
   strikeAssetPerShare: BigDecimal!
+  underlyingPrice: BigDecimal!
 }

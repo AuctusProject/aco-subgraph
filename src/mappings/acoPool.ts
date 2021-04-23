@@ -1,4 +1,4 @@
-import { Address, BigDecimal, BigInt, Bytes, ethereum } from '@graphprotocol/graph-ts'
+import { Address, BigDecimal, BigInt, Bytes, ethereum, log } from '@graphprotocol/graph-ts'
 import { 
   ACOToken, 
   Transaction, 
@@ -713,20 +713,23 @@ export function setPoolDynamicData(timestamp: BigInt, agg: AggregatorInterface, 
     if (pool.totalSupply.gt(ZERO_BD)) {
       
       let poolContract = ACOPool2Contract.bind(Address.fromString(pool.id)) as ACOPool2Contract
-      let generalData = poolContract.getGeneralData()
-
+      let generalData = poolContract.try_getGeneralData()
+      if (generalData.reverted) {
+        log.warning("getGeneralData pool:" + pool.id + " tx:" + agg.tx, [])
+        return
+      }
       let notCollateralValue = ZERO_BD
       let collateralValue = ZERO_BD
-      let totalSupply = convertTokenToDecimal(generalData.value5, pool.decimals) as BigDecimal
+      let totalSupply = convertTokenToDecimal(generalData.value.value5, pool.decimals) as BigDecimal
       
-      poolDynamicData.collateralLocked = convertTokenToDecimal(generalData.value2, pool.decimals) as BigDecimal
-      poolDynamicData.collateralOnOpenPosition = convertTokenToDecimal(generalData.value3, pool.decimals) as BigDecimal
-      poolDynamicData.collateralLockedRedeemable = convertTokenToDecimal(generalData.value4, pool.decimals) as BigDecimal
+      poolDynamicData.collateralLocked = convertTokenToDecimal(generalData.value.value2, pool.decimals) as BigDecimal
+      poolDynamicData.collateralOnOpenPosition = convertTokenToDecimal(generalData.value.value3, pool.decimals) as BigDecimal
+      poolDynamicData.collateralLockedRedeemable = convertTokenToDecimal(generalData.value.value4, pool.decimals) as BigDecimal
 
       if (totalSupply.gt(ZERO_BD)) {
 
-        poolDynamicData.underlyingBalance = convertTokenToDecimal(generalData.value0, underlying.decimals) as BigDecimal
-        poolDynamicData.strikeAssetBalance = convertTokenToDecimal(generalData.value1, strikeAsset.decimals) as BigDecimal
+        poolDynamicData.underlyingBalance = convertTokenToDecimal(generalData.value.value0, underlying.decimals) as BigDecimal
+        poolDynamicData.strikeAssetBalance = convertTokenToDecimal(generalData.value.value1, strikeAsset.decimals) as BigDecimal
 
         if (pool.isCall) {
           notCollateralValue = poolDynamicData.strikeAssetBalance
@@ -924,7 +927,8 @@ function setPoolHistoricalShare(timestamp: BigInt, txHash: string, poolDynamicDa
     if (pool.lastHistoricalShareId != null) {
       let last = PoolHistoricalShare.load(pool.lastHistoricalShareId) as PoolHistoricalShare
       if (last != null && last.underlyingPerShare.equals(poolDynamicData.underlyingPerShare) && 
-        last.strikeAssetPerShare.equals(poolDynamicData.strikeAssetPerShare)) {
+        last.strikeAssetPerShare.equals(poolDynamicData.strikeAssetPerShare) &&
+        last.underlyingPrice.equals(poolDynamicData.underlyingPrice)) {
         return
       }
     } 
@@ -935,6 +939,7 @@ function setPoolHistoricalShare(timestamp: BigInt, txHash: string, poolDynamicDa
       historicalShare.tx = txHash
       historicalShare.underlyingPerShare = poolDynamicData.underlyingPerShare
       historicalShare.strikeAssetPerShare = poolDynamicData.strikeAssetPerShare
+      historicalShare.underlyingPrice = poolDynamicData.underlyingPrice
       historicalShare.save()
       
       pool.historicalSharesCount = pool.historicalSharesCount.plus(ONE_BI)

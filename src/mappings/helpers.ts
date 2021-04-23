@@ -1,6 +1,6 @@
 import { Bytes, BigInt, BigDecimal, Address, dataSource, ethereum } from '@graphprotocol/graph-ts'
 import { ERC20 } from '../types/ACOFactory/ERC20'
-import { Token, Transaction, ACOTokenSituation, AggregatorProxy, AggregatorInterface, ACOAssetConverterHelper, ACOPoolFactory2 } from '../types/schema'
+import { Token, Transaction, ACOTokenSituation, AggregatorProxy, AggregatorInterface, ACOAssetConverterHelper } from '../types/schema'
 import { ACOAssetConverterHelper as ACOAssetConverterHelperContract } from '../types/templates/ACOAssetConverterHelper/ACOAssetConverterHelper'
 import { AggregatorProxy as AggregatorProxyContract } from '../types/templates/AggregatorProxy/AggregatorProxy'
 import { AggregatorInterface as AggregatorInterfaceContract } from '../types/templates/AggregatorInterface/AggregatorInterface'
