@@ -128,7 +128,7 @@ export function handleSwap(event: Swap): void {
   let underlyingPrice = convertTokenToDecimal(event.params.underlyingPrice, strikeAsset.decimals) as BigDecimal
 
   let tx = getTransaction(event) as Transaction
-  let acoSwap = new ACOSwap(event.params.acoToken.toHexString() + "-" + event.address.toHexString() + "-" + event.params.account.toHexString() + "-" + event.transaction.hash.toHexString()) as ACOSwap
+  let acoSwap = new ACOSwap(event.params.acoToken.toHexString() + "-" + event.transaction.hash.toHexString() + "-" + event.logIndex.toString() + "-0") as ACOSwap
   acoSwap.aco = aco.id
   acoSwap.seller = event.address
   acoSwap.buyer = event.params.account
@@ -715,7 +715,7 @@ export function setPoolDynamicData(timestamp: BigInt, agg: AggregatorInterface, 
       let poolContract = ACOPool2Contract.bind(Address.fromString(pool.id)) as ACOPool2Contract
       let generalData = poolContract.try_getGeneralData()
       if (generalData.reverted) {
-        log.warning("getGeneralData pool:" + pool.id + " tx:" + agg.tx, [])
+        log.warning("getGeneralData: {}, {}", [pool.id,agg.tx])
         return
       }
       let notCollateralValue = ZERO_BD

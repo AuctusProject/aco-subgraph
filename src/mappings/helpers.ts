@@ -14,8 +14,11 @@ let AUC = '0xc12d099be31567add4e4e4d0d45691c3f58f5663'
 let ACO_FACTORY = '0x176b98ab38d1ae8ff3f30bf07f9b93e26f559c17'
 let ACO_POOL_FACTORY = '0xe28520ddb1b419ac37ecdbb2c0f97c8cf079ccc3'
 let ZRX_EXCHANGE = '0x61935cbdd02287b511119ddb11aeb42f1593b7ef'
+let ZRX_V4_EXCHANGE = '0xdef1c0ded9bec7f1a1670819833240f027b25eff'
 let BUYER = '0xdd43b83af3bbf093d2c323f065a8169fd2e39265'
+let BUYER_V2 = '0xa52c8ee8f328a478d8efcba9c4177bd9ba6f9710'
 let WRITER = '0xe7597f774fd0a15a617894dc39d45a28b97afa4f'
+let WRITER_V2 = '0x977ce0d7f56197a0440a93fa9563e11c509babba'
 let VAULT_V1 = '0x5d28b41bbad874b5efeee0b4158bc50d0af5f637'
 let VAULT_V2 = '0xad45001fc1f10e348a41e871901f936992d80f79'
 let ACO_OTC_V1 = '0x4e91baee70d392b74f40565bba451638aa777ff0'
@@ -33,8 +36,11 @@ if (network == 'kovan') {
   ACO_FACTORY = '0x53661cec8d21b1c5f362b05f682070f3f6116c55'
   ACO_POOL_FACTORY = '0xd5f37ae12385184752a9cecdbe57f12253c973b9'
   ZRX_EXCHANGE = '0x4eacd0af335451709e1e7b570b8ea68edec8bc97'
+  ZRX_V4_EXCHANGE = '0xdef1c0ded9bec7f1a1670819833240f027b25eff'
   BUYER = '0x75761a6afa36c3a68c1803caa12228ae738df189'
+  BUYER_V2 = '0x57830677a9221fd2eaf53d4fe9e10cdc89fa584b'
   WRITER = '0x436abbb990a73ea35cf9aafce581bb0db15f9e22'
+  WRITER_V2 = '0x817020d326ac4ab9e17f228879b3b4aabe0685b3'
   VAULT_V1 = '0x0e76b8cc3b16a3f1dd286550d05d489b5cf00456'
   VAULT_V2 = '0x49a98a7547fcae51744e14fbe23cc60520a9fff5'
   ACO_OTC_V1 = '0x17ee535ede5495c48116030f7e09c09c49ab03fc'
@@ -44,13 +50,37 @@ if (network == 'kovan') {
   ACO_POOL_IMPLEMENTATION_V2 = "0x65b83b913d0f0a4f6d82d0903de09c31f5e2e56c"
   ACO_POOL_IMPLEMENTATION_V3 = "0xea0c6266863209d045de9dfee1b5438e595e739b"
   ACO_POOL_IMPLEMENTATION_V4 = "0x3ef80891533f9a4bd249a672ddb000c431c82751"
+} else if (network == 'ropsten') {
+  WBTC = '0xc778417e063141139fce010982780140aa0cd5ab'
+  USDC = '0x0f3aaa63538ea7098d0778264d6d136821c3ca1e'
+  AUC = '0xdbb4f48b103e68273efd4a653949f020bda0aeaf'
+  ACO_FACTORY = '0xf44e41ef2487dff9db6449e299ac8f7c07f7f3ca'
+  ACO_POOL_FACTORY = '0x7fec33c33a9b9a3a3521ee2eed7196372edb5f00'
+  ZRX_EXCHANGE = 'na'
+  ZRX_V4_EXCHANGE = '0xdef1c0ded9bec7f1a1670819833240f027b25eff'
+  BUYER = 'na'
+  BUYER_V2 = '0x313c2658574626b75b58b4b2948e7d14c6226f4f'
+  WRITER = 'na'
+  WRITER_V2 = '0x6abfce87d849ea772244ebb2cdbc6410d3796baf'
+  VAULT_V1 = 'na'
+  VAULT_V2 = '0x258f4b8c6b93221fb9f035d4c8d0cb010f56674c'
+  ACO_OTC_V1 = 'na'
+  ACO_OTC_V2 = '0x122fbb55c8cdda2a9f2d5b68a7f84bf6041c57fc'
+  ACO_POOL_BLOCK = 10216558
+  ACO_POOL_IMPLEMENTATION_V1 = "na"
+  ACO_POOL_IMPLEMENTATION_V2 = "na"
+  ACO_POOL_IMPLEMENTATION_V3 = "na"
+  ACO_POOL_IMPLEMENTATION_V4 = "0x21a4f64bebc3cd8f95b36cfb45d7bb61e3e67209"
 }
 
 export let ACO_FACTORY_ADDRESS = ACO_FACTORY
 export let ACO_POOL_FACTORY_ADDRESS = ACO_POOL_FACTORY
 export let ZRX_EXCHANGE_ADDRESS = ZRX_EXCHANGE
+export let ZRX_V4_EXCHANGE_ADDRESS = ZRX_V4_EXCHANGE
 export let BUYER_ADDRESS = BUYER
 export let WRITER_ADDRESS = WRITER
+export let BUYER_V2_ADDRESS = BUYER_V2
+export let WRITER_V2_ADDRESS = WRITER_V2
 export let VAULT_V1_ADDRESS = VAULT_V1
 export let VAULT_V2_ADDRESS = VAULT_V2
 export let ACO_OTC_V1_ADDRESS = ACO_OTC_V1
@@ -369,15 +399,17 @@ export function setAggregatorProxy(
     proxy.assetConverter = assetConverter.toHexString()
 
     let proxyContract = AggregatorProxyContract.bind(Address.fromString(proxyAddress.toHexString())) as AggregatorProxyContract
-    let aggResult = proxyContract.aggregator()
-    let agg = setAggregatorInterface(transaction, block, logIndex, proxyAddress, aggResult)
-    proxy.aggregator = agg.id
+    let aggResult = proxyContract.try_aggregator()
+    if (!aggResult.reverted && aggResult.value.toHexString() != ADDRESS_ZERO) {
+      let agg = setAggregatorInterface(transaction, block, logIndex, proxyAddress, aggResult.value)
+      proxy.aggregator = agg.id
 
-    if (isNew) {    
-      AggregatorProxyTemplate.create(Address.fromString(proxyAddress.toHexString()))
+      if (isNew) {    
+        AggregatorProxyTemplate.create(Address.fromString(proxyAddress.toHexString()))
+      }
+      proxy.save()
+      return agg
     }
-    proxy.save()
-    return agg
   }
   return null as AggregatorInterface
 }
@@ -411,4 +443,16 @@ export function setAggregatorInterface(
   }
   agg.save()
   return agg
+}
+
+export function parseHexNumToBigInt(input: string): BigInt {
+  if (!input.startsWith("0x")) {
+    input = "0x" + input
+  }
+  return BigInt.fromUnsignedBytes((Bytes.fromHexString(input) as Bytes).reverse() as Bytes)
+}
+
+export function parseHexNumToI32(input: string): i32 {
+  let bigInt = parseHexNumToBigInt(input)
+  return bigInt.toI32()
 }

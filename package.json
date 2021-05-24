@@ -9,6 +9,7 @@
     "build": "graph build",
     "deploy": "graph deploy auctusproject/auctus-options --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/",
     "deploy:kovan": "graph deploy auctusproject/auctus-options-kovan subgraph.kovan.yaml --debug --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/",
+    "deploy:ropsten": "graph deploy auctusproject/auctus-options-ropsten subgraph.ropsten.yaml --debug --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/",
     "deploy:local": "graph deploy auctusproject/auctus-options-subgraph subgraph.yaml --debug --ipfs http://localhost:5001 --node http://127.0.0.1:8020"
   },
   "devDependencies": {

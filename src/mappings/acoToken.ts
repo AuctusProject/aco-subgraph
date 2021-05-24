@@ -15,7 +15,14 @@ import {
   convertTokenToDecimal, 
   ACO_OTC_V1_ADDRESS,
   ACO_OTC_V2_ADDRESS,
-  getToken } from './helpers'
+  getToken, 
+  WRITER_V2_ADDRESS,
+  convertDecimalToToken,
+  BUYER_V2_ADDRESS,
+  ZRX_V4_EXCHANGE_ADDRESS,
+  parseHexNumToBigInt,
+  parseHexNumToI32
+} from './helpers'
 
 export function handleMint(event: CollateralDeposit): void {
   let aco = ACOToken.load(event.address.toHexString()) as ACOToken
@@ -234,38 +241,34 @@ export function handleTransfer(event: Transfer): void {
 }
 
 function handleSwapOnZrxOrOtc(tokenAmount: BigDecimal, aco: ACOToken, event: Transfer): void {
-  let swapType = null as string
-  let taker = null as Bytes
-  let seller = null as Bytes
-  let buyer = null as Bytes
-  let swapPaidAmount = null as BigInt
-  let swapToken = null as Token
-
   if (event.transaction.to != null 
     && event.params.from.toHexString() != ADDRESS_ZERO 
     && event.params.to.toHexString() != ADDRESS_ZERO) {
+      
+    let input = event.transaction.input.toHexString() as string
+    let baseMethod = input.substring(2, 10) as string
+    let data = new AcoSwapToSave()
 
     if (event.transaction.to.toHexString() == ZRX_EXCHANGE_ADDRESS
       || event.transaction.to.toHexString() == WRITER_ADDRESS) {
-      swapType = "ZRX"
-      let input = event.transaction.input.toHexString()
+      data.swapType = "ZRX"
       let method = null as string
       let maker = null as Bytes
       if (event.transaction.to.toHexString() == WRITER_ADDRESS) {
-        buyer = event.params.to
-        seller = event.transaction.from
-        taker = event.transaction.from
+        data.buyer = event.params.to
+        data.seller = event.transaction.from
+        data.taker = event.transaction.from
         maker = event.params.to
         method = input.substring(330, 338)
       } else {
-        buyer = event.params.to
-        seller = event.params.from
-        method = input.substring(2, 10)
+        data.buyer = event.params.to
+        data.seller = event.params.from
+        method = baseMethod
         if (method == "8bc8efb3") {
-          taker = event.params.to
+          data.taker = event.params.to
           maker = event.params.from
         } else if (method == "a6c3bf33") {
-          taker = event.params.from
+          data.taker = event.params.from
           maker = event.params.to
         }
       }
@@ -273,51 +276,198 @@ function handleSwapOnZrxOrOtc(tokenAmount: BigDecimal, aco: ACOToken, event: Tra
         let searchValue = maker.toHexString().substring(2) as string
         let indexValue = input.indexOf(searchValue)
         let indexToken = input.indexOf("f47261b0000000000000000000000000")
-        let val1 = BigInt.fromUnsignedBytes((Bytes.fromHexString("0x" + input.substring(indexValue + 232, indexValue + 296)) as Bytes).reverse() as Bytes)
-        let val2 = BigInt.fromUnsignedBytes((Bytes.fromHexString("0x" + input.substring(indexValue + 296, indexValue + 360)) as Bytes).reverse() as Bytes)
+        let val1 = parseHexNumToBigInt(input.substring(indexValue + 232, indexValue + 296))
+        let val2 = parseHexNumToBigInt(input.substring(indexValue + 296, indexValue + 360))
         if (method == "8bc8efb3") {
-          swapPaidAmount = event.params.value.times(val2).div(val1)
-          swapToken = getToken(Address.fromString("0x" + input.substring(indexToken + 224, indexToken + 264))) as Token
+          data.swapPaidAmount = event.params.value.times(val2).div(val1)
+          data.swapToken = getToken(Address.fromString("0x" + input.substring(indexToken + 224, indexToken + 264))) as Token
         } else if (method == "a6c3bf33") {
-          swapPaidAmount = event.params.value.times(val1).div(val2)
-          swapToken = getToken(Address.fromString("0x" + input.substring(indexToken + 32, indexToken + 72))) as Token
+          data.swapPaidAmount = event.params.value.times(val1).div(val2)
+          data.swapToken = getToken(Address.fromString("0x" + input.substring(indexToken + 32, indexToken + 72))) as Token
+        }
+      }
+    } else if (event.transaction.to.toHexString() == ZRX_V4_EXCHANGE_ADDRESS
+      || event.transaction.to.toHexString() == WRITER_V2_ADDRESS
+      || event.params.from.toHexString() == BUYER_V2_ADDRESS) {
+
+      data.swapType = "ZRX"
+      data.buyer = event.params.to
+
+      let zrxInputData = null as string
+      let startOrderIndex = 0 as i32
+      let startSizeIndex = 0 as i32
+
+      if (event.transaction.to.toHexString() == WRITER_V2_ADDRESS && baseMethod == "dd2a42fe") {
+      
+        data.seller = event.transaction.from
+        data.taker = event.transaction.from
+  
+        zrxInputData = input.substring(266) as string
+        startOrderIndex = 328 as i32
+        startSizeIndex = (parseHexNumToI32(zrxInputData.substring(136, 200)) * 2 + 8 + 64) as i32
+
+      } else if (event.transaction.to.toHexString() == ZRX_V4_EXCHANGE_ADDRESS) {
+        zrxInputData = input.toString() as string
+        if (baseMethod == "1baaa00b") {
+          startOrderIndex = 330 as i32
+          startSizeIndex = (parseHexNumToI32(input.substring(138, 202)) * 2 + 10 + 64) as i32
+        } else if (baseMethod == "9240529c" || baseMethod == "f6274f66") {
+          startOrderIndex = 10 as i32
+          startSizeIndex = 1034 as i32
+        }
+      } else if (event.params.from.toHexString() == BUYER_V2_ADDRESS && baseMethod == "eb7a7eb3") {
+
+        data.taker = event.params.to
+
+        let baseIndex = input.indexOf("000000000000000000000000" + ZRX_V4_EXCHANGE_ADDRESS.substring(2)) as i32
+        if (baseIndex > 0) {
+          let endIndex = (parseHexNumToI32(input.substring((baseIndex + 192), (baseIndex + 256))) * 2) as i32
+          let startIndex = (baseIndex + 256) as i32
+          endIndex = (startIndex + endIndex) as i32
+          zrxInputData = input.substring(startIndex, endIndex) as string
+          startOrderIndex = 328 as i32
+          startSizeIndex = (parseHexNumToI32(zrxInputData.substring(136, 200)) * 2 + 8 + 64) as i32
+        }
+      }
+      if (zrxInputData != null && startSizeIndex > 0) {
+
+        let makerTokenHex = ("0x" + zrxInputData.substring((startOrderIndex + 24), (startOrderIndex + 64))) as string
+        let takerTokenHex = ("0x" + zrxInputData.substring((startOrderIndex + 88), (startOrderIndex + 128))) as string
+        let isBuy = (makerTokenHex == aco.id) as boolean
+        let swapTokenHex = (isBuy ? takerTokenHex : makerTokenHex) as string
+
+        data.swapToken = getToken(Address.fromString(swapTokenHex)) as Token
+
+        let zrxData = getZrxData(aco, zrxInputData, startSizeIndex, data.swapToken as Token, isBuy, takerTokenHex) as Array<ZrxData>
+
+        let maker = null as string
+        for (let i = 0 as i32; i < zrxData.length; ++i) {
+          if (event.params.from.toHexString() == BUYER_V2_ADDRESS) {
+            let toSave = new AcoSwapToSave()
+            toSave.buyer = data.buyer as Bytes
+            toSave.taker = data.taker as Bytes
+            toSave.swapType = data.swapType as string
+            toSave.swapToken = data.swapToken as Token
+            toSave.seller = Address.fromString(zrxData[i].maker)
+            toSave.swapPaidAmount = convertDecimalToToken(zrxData[i].takerSize as BigDecimal, data.swapToken.decimals)
+            createAcoSwap(zrxData[i].makerSize as BigDecimal, aco, event, toSave, i)
+          } else {
+            if (isBuy) {
+              if (tokenAmount.equals(zrxData[i].makerSize as BigDecimal)) {
+                data.swapPaidAmount = convertDecimalToToken(zrxData[i].takerSize as BigDecimal, data.swapToken.decimals)
+                break
+              }
+            } else {
+              if (zrxData[i].maker == data.buyer.toHexString() && tokenAmount.equals(zrxData[i].takerSize as BigDecimal)) {
+                data.swapPaidAmount = convertDecimalToToken(zrxData[i].makerSize as BigDecimal, data.swapToken.decimals)
+                break
+              }
+            }
+          }
+        }
+        if (event.params.from.toHexString() != BUYER_V2_ADDRESS && data.swapPaidAmount != null) {
+          if (isBuy) {
+            if (data.seller == null) {
+              data.seller = Address.fromString(maker)
+            }
+            if (data.taker == null) {
+              data.taker = data.buyer
+            }
+          } else {
+            if (data.seller == null) {
+              data.seller = event.transaction.from
+            }
+            if (data.taker == null) {
+              data.taker = data.seller
+            }
+          }
         }
       }
     } else if (event.transaction.to.toHexString() == ACO_OTC_V1_ADDRESS
       || event.transaction.to.toHexString() == ACO_OTC_V2_ADDRESS) {
-      swapType = "OTC"
-      taker = event.transaction.from
-      buyer = event.params.to
-      let input = event.transaction.input.toHexString()
-      let method = input.substring(2, 10)
-      if (method == "7da22e76") {
-        seller = Address.fromString("0x" + input.substring(162, 202))
-        swapPaidAmount = BigInt.fromUnsignedBytes((Bytes.fromHexString("0x" + input.substring(650, 714)) as Bytes).reverse() as Bytes)
-        swapToken = getToken(Address.fromString("0x" + input.substring(738, 778)))
-      } else if (method == "538df066") {
-        seller = event.transaction.from
-        swapPaidAmount = BigInt.fromUnsignedBytes((Bytes.fromHexString("0x" + input.substring(202, 266)) as Bytes).reverse() as Bytes)
-        swapToken = getToken(Address.fromString("0x" + input.substring(290, 330)))
+      data.swapType = "OTC"
+      data.taker = event.transaction.from
+      data.buyer = event.params.to
+      if (baseMethod == "7da22e76") {
+        data.seller = Address.fromString("0x" + input.substring(162, 202))
+        data.swapPaidAmount = parseHexNumToBigInt(input.substring(650, 714))
+        data.swapToken = getToken(Address.fromString("0x" + input.substring(738, 778)))
+      } else if (baseMethod == "538df066") {
+        data.seller = event.transaction.from
+        data.swapPaidAmount = parseHexNumToBigInt(input.substring(202, 266))
+        data.swapToken = getToken(Address.fromString("0x" + input.substring(290, 330)))
       }
     }
 
-    if (swapType != null && taker != null && seller != null && buyer != null && swapPaidAmount != null && swapToken != null) {
-      let tx = getTransaction(event) as Transaction
-      let swap = new ACOSwap(event.address.toHexString() + "-" + seller.toHexString() + "-" + buyer.toHexString() + "-" + event.transaction.hash.toHexString()) as ACOSwap
-      swap.aco = aco.id
-      swap.seller = seller
-      swap.buyer = buyer
-      swap.taker = taker
-      swap.type = swapType
-      swap.paymentToken = swapToken.id
-      swap.paymentAmount = convertTokenToDecimal(swapPaidAmount, swapToken.decimals)
-      swap.acoAmount = tokenAmount
-      swap.tx = tx.id
-      swap.save()
-      aco.swapsCount = aco.swapsCount.plus(ONE_BI)
-      aco.lastSwapId = swap.id
-      aco.save()
-    }
+    createAcoSwap(tokenAmount, aco, event, data, 0)
+  }
+}
+
+function getZrxData(
+  aco: ACOToken,
+  zrxInputData: string, 
+  startSizeIndex: i32,
+  swapToken: Token,
+  isBuy: boolean,
+  takerTokenHex: string): Array<ZrxData> {
+
+  let data = new Array<ZrxData>()
+  let zrxInputValues = zrxInputData.split("000000000000000000000000" + takerTokenHex.substring(2)) as string[]
+
+  for (let i = 1 as i32; i < zrxInputValues.length; ++i) {
+    let zrx = new ZrxData()
+    let makerAmount = parseHexNumToBigInt(zrxInputValues[i].substring(0, 64))
+    let takerAmount = parseHexNumToBigInt(zrxInputValues[i].substring(64, 128))
+    let size = parseHexNumToBigInt(zrxInputData.substring(startSizeIndex + (64 * (i - 1)), startSizeIndex + (64 * i)))
+    zrx.maker = ("0x" + zrxInputValues[i].substring(216, 256)) as string
+    
+    let makerTotalSize = convertTokenToDecimal(makerAmount, (isBuy ? aco.decimals : swapToken.decimals))
+    let takerTotalSize = convertTokenToDecimal(takerAmount, (isBuy ? swapToken.decimals : aco.decimals))
+    let price = (isBuy ? takerTotalSize.div(makerTotalSize) : makerTotalSize.div(takerTotalSize))
+    zrx.takerSize = convertTokenToDecimal(size, (isBuy ? swapToken.decimals : aco.decimals))
+    zrx.makerSize = (isBuy ? zrx.takerSize.div(price) : zrx.takerSize.times(price))
+    data.push(zrx)
+  }
+  return data
+}
+
+class ZrxData {
+  makerSize: BigDecimal | null
+  takerSize: BigDecimal | null
+  maker: string | null
+}
+
+class AcoSwapToSave {
+  swapType: string | null
+  taker: Bytes | null
+  seller: Bytes | null
+  buyer: Bytes | null
+  swapPaidAmount: BigInt | null
+  swapToken: Token | null
+}
+
+function createAcoSwap(
+  tokenAmount: BigDecimal, 
+  aco: ACOToken, 
+  event: Transfer,
+  data: AcoSwapToSave,
+  index: i32): void {
+  if (data != null && data.swapType != null && data.taker != null && data.seller != null && data.buyer != null && data.swapPaidAmount != null && data.swapToken != null) {
+    let tx = getTransaction(event) as Transaction
+    let swap = new ACOSwap(event.address.toHexString() + "-" + event.transaction.hash.toHexString() + "-" + event.logIndex.toString() + "-" + index.toString()) as ACOSwap
+    swap.aco = aco.id
+    swap.seller = data.seller as Bytes
+    swap.buyer = data.buyer as Bytes
+    swap.taker = data.taker as Bytes
+    swap.type = data.swapType as string
+    swap.paymentToken = data.swapToken.id
+    swap.paymentAmount = convertTokenToDecimal(data.swapPaidAmount as BigInt, data.swapToken.decimals)
+    swap.acoAmount = tokenAmount
+    swap.tx = tx.id
+    swap.save()
+    aco.swapsCount = aco.swapsCount.plus(ONE_BI)
+    aco.lastSwapId = swap.id
+    aco.save()
   }
 }
 
