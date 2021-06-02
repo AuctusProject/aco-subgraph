@@ -50,7 +50,9 @@ import {
   SetUnderlyingPriceAdjustPercentage,
   SetMaximumOpenAco,
   SetFee,
-  SetFeeDestination
+  SetFeeDestination,
+  SetImplementation,
+  SetAcoPermissionConfigV2
 } from '../types/templates/ACOPool2/ACOPool2'
 import {
   getToken,
@@ -74,6 +76,12 @@ import {
 import { ACOPool2 as ACOPool2Contract } from '../types/templates/ACOPool2/ACOPool2'
 import { ACOToken as ACOTokenContract } from '../types/templates/ACOPool2/ACOToken'
 import { ACOPoolStrategy as ACOPoolStrategyContract, ACOPoolStrategy__quoteInputQuoteDataStruct } from '../types/templates/ACOPool2/ACOPoolStrategy'
+
+export function handleImplementationChange(event: SetImplementation): void {
+  let pool = ACOPool2.load(event.address.toHexString()) as ACOPool2
+  pool.implementation = event.params.newImplementation
+  pool.save()
+}
 
 export function handleTransfer(event: Transfer): void {
   let pool = ACOPool2.load(event.address.toHexString()) as ACOPool2
@@ -345,12 +353,43 @@ export function handleNewAcoPermissionConfig(event: SetAcoPermissionConfig): voi
   let maxExpiration = event.params.newConfig.maxExpiration
 
   let tx = getTransaction(event) as Transaction
-  let historyId = setAcoPoolPermissionHistory(event.address, tolerancePriceBelowMin, tolerancePriceBelowMax, tolerancePriceAboveMin, tolerancePriceAboveMax, minExpiration, maxExpiration, event.transaction, tx)
+  let historyId = setAcoPoolPermissionHistory(event.address, tolerancePriceBelowMin, tolerancePriceBelowMax, tolerancePriceAboveMin, tolerancePriceAboveMax, ZERO_BD, ZERO_BD, minExpiration, maxExpiration, event.transaction, tx)
 
   pool.acoPoolPermissionsHistoryCount = pool.acoPoolPermissionsHistoryCount.plus(ONE_BI) 
   pool.lastAcoPoolPermissionHistoryId = historyId
   pool.maxExpiration = maxExpiration
   pool.minExpiration = minExpiration
+  pool.tolerancePriceAboveMax = tolerancePriceAboveMax
+  pool.tolerancePriceAboveMin = tolerancePriceAboveMin
+  pool.tolerancePriceBelowMax = tolerancePriceBelowMax
+  pool.tolerancePriceBelowMin = tolerancePriceBelowMin
+  pool.save()
+
+  updatePoolDynamicData(event, pool)
+}
+
+export function handleNewAcoPermissionConfigV2(event: SetAcoPermissionConfigV2): void {
+  let pool = ACOPool2.load(event.address.toHexString()) as ACOPool2
+  let strikeAsset = Token.load(pool.strikeAsset) as Token
+  
+  let tolerancePriceAboveMax = convertTokenToDecimal(event.params.newConfig.tolerancePriceAboveMax, BigInt.fromI32(5))
+  let tolerancePriceAboveMin = convertTokenToDecimal(event.params.newConfig.tolerancePriceAboveMin, BigInt.fromI32(5))
+  let tolerancePriceBelowMax = convertTokenToDecimal(event.params.newConfig.tolerancePriceBelowMax, BigInt.fromI32(5))
+  let tolerancePriceBelowMin = convertTokenToDecimal(event.params.newConfig.tolerancePriceBelowMin, BigInt.fromI32(5))
+  let minStrikePrice = convertTokenToDecimal(event.params.newConfig.minStrikePrice as BigInt, strikeAsset.decimals)
+  let maxStrikePrice = convertTokenToDecimal(event.params.newConfig.maxStrikePrice as BigInt, strikeAsset.decimals)
+  let minExpiration = event.params.newConfig.minExpiration
+  let maxExpiration = event.params.newConfig.maxExpiration
+
+  let tx = getTransaction(event) as Transaction
+  let historyId = setAcoPoolPermissionHistory(event.address, tolerancePriceBelowMin, tolerancePriceBelowMax, tolerancePriceAboveMin, tolerancePriceAboveMax, minStrikePrice, maxStrikePrice, minExpiration, maxExpiration, event.transaction, tx)
+
+  pool.acoPoolPermissionsHistoryCount = pool.acoPoolPermissionsHistoryCount.plus(ONE_BI) 
+  pool.lastAcoPoolPermissionHistoryId = historyId
+  pool.maxExpiration = maxExpiration
+  pool.minExpiration = minExpiration
+  pool.minStrikePrice = minStrikePrice
+  pool.maxStrikePrice = maxStrikePrice
   pool.tolerancePriceAboveMax = tolerancePriceAboveMax
   pool.tolerancePriceAboveMin = tolerancePriceAboveMin
   pool.tolerancePriceBelowMax = tolerancePriceBelowMax
@@ -411,7 +450,7 @@ export function handleNewPoolDataForAcoPermission(event: SetPoolDataForAcoPermis
     pool.tolerancePriceBelowMax = ZERO_BD
   }
   let tx = getTransaction(event) as Transaction
-  let historyId = setAcoPoolPermissionHistory(event.address, pool.tolerancePriceBelowMin, pool.tolerancePriceBelowMax, pool.tolerancePriceAboveMin, pool.tolerancePriceAboveMax, pool.minExpiration, pool.maxExpiration, event.transaction, tx)
+  let historyId = setAcoPoolPermissionHistory(event.address, pool.tolerancePriceBelowMin, pool.tolerancePriceBelowMax, pool.tolerancePriceAboveMin, pool.tolerancePriceAboveMax, ZERO_BD, ZERO_BD, pool.minExpiration, pool.maxExpiration, event.transaction, tx)
   pool.acoPoolPermissionsHistoryCount = pool.acoPoolPermissionsHistoryCount.plus(ONE_BI) 
   pool.lastAcoPoolPermissionHistoryId = historyId
   pool.save()
@@ -461,7 +500,7 @@ export function handleNewTolerancePriceAbove(event: SetTolerancePriceAbove): voi
     pool.tolerancePriceBelowMin = ZERO_BD
   }
   let tx = getTransaction(event) as Transaction
-  let historyId = setAcoPoolPermissionHistory(event.address, pool.tolerancePriceBelowMin, pool.tolerancePriceBelowMax, pool.tolerancePriceAboveMin, pool.tolerancePriceAboveMax, pool.minExpiration, pool.maxExpiration, event.transaction, tx)
+  let historyId = setAcoPoolPermissionHistory(event.address, pool.tolerancePriceBelowMin, pool.tolerancePriceBelowMax, pool.tolerancePriceAboveMin, pool.tolerancePriceAboveMax, ZERO_BD, ZERO_BD, pool.minExpiration, pool.maxExpiration, event.transaction, tx)
   pool.acoPoolPermissionsHistoryCount = pool.acoPoolPermissionsHistoryCount.plus(ONE_BI) 
   pool.lastAcoPoolPermissionHistoryId = historyId
   pool.save()
@@ -491,7 +530,7 @@ export function handleNewTolerancePriceBelow(event: SetTolerancePriceBelow): voi
     pool.tolerancePriceAboveMin = ZERO_BD
   }
   let tx = getTransaction(event) as Transaction
-  let historyId = setAcoPoolPermissionHistory(event.address, pool.tolerancePriceBelowMin, pool.tolerancePriceBelowMax, pool.tolerancePriceAboveMin, pool.tolerancePriceAboveMax, pool.minExpiration, pool.maxExpiration, event.transaction, tx)
+  let historyId = setAcoPoolPermissionHistory(event.address, pool.tolerancePriceBelowMin, pool.tolerancePriceBelowMax, pool.tolerancePriceAboveMin, pool.tolerancePriceAboveMax, ZERO_BD, ZERO_BD, pool.minExpiration, pool.maxExpiration, event.transaction, tx)
   pool.acoPoolPermissionsHistoryCount = pool.acoPoolPermissionsHistoryCount.plus(ONE_BI) 
   pool.lastAcoPoolPermissionHistoryId = historyId
   pool.save()
@@ -503,7 +542,7 @@ export function handleNewMinExpiration(event: SetMinExpiration): void {
   let pool = ACOPool2.load(event.address.toHexString()) as ACOPool2
   pool.minExpiration = event.params.newMinExpiration
   let tx = getTransaction(event) as Transaction
-  let historyId = setAcoPoolPermissionHistory(event.address, pool.tolerancePriceBelowMin, pool.tolerancePriceBelowMax, pool.tolerancePriceAboveMin, pool.tolerancePriceAboveMax, pool.minExpiration, pool.maxExpiration, event.transaction, tx)
+  let historyId = setAcoPoolPermissionHistory(event.address, pool.tolerancePriceBelowMin, pool.tolerancePriceBelowMax, pool.tolerancePriceAboveMin, pool.tolerancePriceAboveMax, ZERO_BD, ZERO_BD, pool.minExpiration, pool.maxExpiration, event.transaction, tx)
   pool.acoPoolPermissionsHistoryCount = pool.acoPoolPermissionsHistoryCount.plus(ONE_BI) 
   pool.lastAcoPoolPermissionHistoryId = historyId
   pool.save()
@@ -515,7 +554,7 @@ export function handleNewMaxExpiration(event: SetMaxExpiration): void {
   let pool = ACOPool2.load(event.address.toHexString()) as ACOPool2
   pool.maxExpiration = event.params.newMaxExpiration
   let tx = getTransaction(event) as Transaction
-  let historyId = setAcoPoolPermissionHistory(event.address, pool.tolerancePriceBelowMin, pool.tolerancePriceBelowMax, pool.tolerancePriceAboveMin, pool.tolerancePriceAboveMax, pool.minExpiration, pool.maxExpiration, event.transaction, tx)
+  let historyId = setAcoPoolPermissionHistory(event.address, pool.tolerancePriceBelowMin, pool.tolerancePriceBelowMax, pool.tolerancePriceAboveMin, pool.tolerancePriceAboveMax, ZERO_BD, ZERO_BD, pool.minExpiration, pool.maxExpiration, event.transaction, tx)
   pool.acoPoolPermissionsHistoryCount = pool.acoPoolPermissionsHistoryCount.plus(ONE_BI) 
   pool.lastAcoPoolPermissionHistoryId = historyId
   pool.save()
@@ -605,6 +644,8 @@ export function setAcoPoolPermissionHistory(
   tolerancePriceBelowMax: BigDecimal,
   tolerancePriceAboveMin: BigDecimal,
   tolerancePriceAboveMax: BigDecimal,
+  minStrikePrice: BigDecimal,
+  maxStrikePrice: BigDecimal,
   minExpiration: BigInt,
   maxExpiration: BigInt,
   eventTx: ethereum.Transaction, 
@@ -617,6 +658,8 @@ export function setAcoPoolPermissionHistory(
   permission.tolerancePriceBelowMax = tolerancePriceBelowMax
   permission.tolerancePriceAboveMin = tolerancePriceAboveMin
   permission.tolerancePriceAboveMax = tolerancePriceAboveMax
+  permission.minStrikePrice = minStrikePrice
+  permission.maxStrikePrice = maxStrikePrice
   permission.minExpiration = minExpiration
   permission.maxExpiration = maxExpiration
   permission.save()

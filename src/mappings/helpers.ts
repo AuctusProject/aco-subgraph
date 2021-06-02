@@ -28,6 +28,7 @@ let ACO_POOL_IMPLEMENTATION_V1 = "0x68153d392966d38b7ae4415bd5778d02a579a437"
 let ACO_POOL_IMPLEMENTATION_V2 = "0x1275c3070bba4c88031a726ab2cbd2f31605226a"
 let ACO_POOL_IMPLEMENTATION_V3 = "0xb4f28d9aa4ae8070ba1dea1f2fd888a64b45aa17"
 let ACO_POOL_IMPLEMENTATION_V4 = "0x366a6677fe197e3f1e76eb0f7cd2aaf35939d51a"
+let ACO_POOL_IMPLEMENTATION_V5 = ""
 
 if (network == 'kovan') {
   WBTC = '0x4000132b399b6c85e465b60c9d897b6745149fee'
@@ -50,6 +51,7 @@ if (network == 'kovan') {
   ACO_POOL_IMPLEMENTATION_V2 = "0x65b83b913d0f0a4f6d82d0903de09c31f5e2e56c"
   ACO_POOL_IMPLEMENTATION_V3 = "0xea0c6266863209d045de9dfee1b5438e595e739b"
   ACO_POOL_IMPLEMENTATION_V4 = "0x3ef80891533f9a4bd249a672ddb000c431c82751"
+  ACO_POOL_IMPLEMENTATION_V5 = "0xbb3fef4d1515686a695004d590f10399887b00de"
 } else if (network == 'ropsten') {
   WBTC = '0xc778417e063141139fce010982780140aa0cd5ab'
   USDC = '0x0f3aaa63538ea7098d0778264d6d136821c3ca1e'
@@ -70,7 +72,8 @@ if (network == 'kovan') {
   ACO_POOL_IMPLEMENTATION_V1 = "na"
   ACO_POOL_IMPLEMENTATION_V2 = "na"
   ACO_POOL_IMPLEMENTATION_V3 = "na"
-  ACO_POOL_IMPLEMENTATION_V4 = "0x21a4f64bebc3cd8f95b36cfb45d7bb61e3e67209"
+  ACO_POOL_IMPLEMENTATION_V4 = "0xdb0528bfb418c1fe75cbdc14f3eeefe6149ade7e"
+  ACO_POOL_IMPLEMENTATION_V5 = "0xbb3fef4d1515686a695004d590f10399887b00de"
 }
 
 export let ACO_FACTORY_ADDRESS = ACO_FACTORY
@@ -90,6 +93,7 @@ export let ACO_POOL_IMPL_V1_ADDRESS = ACO_POOL_IMPLEMENTATION_V1
 export let ACO_POOL_IMPL_V2_ADDRESS = ACO_POOL_IMPLEMENTATION_V2
 export let ACO_POOL_IMPL_V3_ADDRESS = ACO_POOL_IMPLEMENTATION_V3
 export let ACO_POOL_IMPL_V4_ADDRESS = ACO_POOL_IMPLEMENTATION_V4
+export let ACO_POOL_IMPL_V5_ADDRESS = ACO_POOL_IMPLEMENTATION_V5
 
 export let MINIMUM_POOL_COLLATERAL_VALUE = BigDecimal.fromString('1000')
 export let MINIMUM_POOL_SHARE_UPDATE = BigInt.fromI32(1200)
@@ -112,7 +116,11 @@ export function convertTokenToDecimal(tokenAmount: BigInt, decimals: BigInt): Bi
   if (decimals == ZERO_BI) {
     return tokenAmount.toBigDecimal()
   }
-  return tokenAmount.toBigDecimal().div(exponentToBigDecimal(decimals))
+  let value = tokenAmount.toBigDecimal()
+  if (value < ZERO_BD) {
+    return value
+  }
+  return value.div(exponentToBigDecimal(decimals))
 }
 
 export function convertDecimalToToken(value: BigDecimal, decimals: BigInt): BigInt {

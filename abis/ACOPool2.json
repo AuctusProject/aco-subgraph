@@ -3,6 +3,495 @@
 		"anonymous": false,
 		"inputs": [
 			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "previousAdmin",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "newAdmin",
+				"type": "address"
+			}
+		],
+		"name": "ProxyAdminUpdated",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "previousImplementation",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "newImplementation",
+				"type": "address"
+			}
+		],
+		"name": "SetImplementation",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "oldAssetConverter",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "newAssetConverter",
+				"type": "address"
+			}
+		],
+		"name": "SetAssetConverter",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "oldFee",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "newFee",
+				"type": "uint256"
+			}
+		],
+		"name": "SetFee",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "oldFeeDestination",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "oldFee",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "newFeeDestination",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "newFee",
+				"type": "uint256"
+			}
+		],
+		"name": "SetFeeData",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "oldFeeDestination",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "newFeeDestination",
+				"type": "address"
+			}
+		],
+		"name": "SetFeeDestination",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "oldLendingPoolReferral",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "newLendingPoolReferral",
+				"type": "uint256"
+			}
+		],
+		"name": "SetLendingPoolReferral",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "oldMaxExpiration",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "newMaxExpiration",
+				"type": "uint256"
+			}
+		],
+		"name": "SetMaxExpiration",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "oldMaximumOpenAco",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "newMaximumOpenAco",
+				"type": "uint256"
+			}
+		],
+		"name": "SetMaximumOpenAco",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "oldMinExpiration",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "newMinExpiration",
+				"type": "uint256"
+			}
+		],
+		"name": "SetMinExpiration",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "oldTolerancePriceBelow",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "oldTolerancePriceAbove",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "oldMinExpiration",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "oldMaxExpiration",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "newTolerancePriceBelow",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "newTolerancePriceAbove",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "newMinExpiration",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "newMaxExpiration",
+				"type": "uint256"
+			}
+		],
+		"name": "SetPoolDataForAcoPermission",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "oldTolerancePriceAbove",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "newTolerancePriceAbove",
+				"type": "uint256"
+			}
+		],
+		"name": "SetTolerancePriceAbove",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "oldTolerancePriceBelow",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "newTolerancePriceBelow",
+				"type": "uint256"
+			}
+		],
+		"name": "SetTolerancePriceBelow",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "oldUnderlyingPriceAdjustPercentage",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "newUnderlyingPriceAdjustPercentage",
+				"type": "uint256"
+			}
+		],
+		"name": "SetUnderlyingPriceAdjustPercentage",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "oldWithdrawOpenPositionPenalty",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "newWithdrawOpenPositionPenalty",
+				"type": "uint256"
+			}
+		],
+		"name": "SetWithdrawOpenPositionPenalty",
+		"type": "event"
+	},
+	{
+		"inputs": [],
+		"name": "underlyingPriceAdjustPercentage",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "withdrawOpenPositionPenalty",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "tolerancePriceAbove",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "tolerancePriceBelow",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "maxExpiration",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "maximumOpenAco",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "minExpiration",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "lendingPoolReferral",
+		"outputs": [
+			{
+				"internalType": "uint16",
+				"name": "",
+				"type": "uint16"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "assetConverter",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "feeDestination",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},	
+	{
+		"inputs": [],
+		"name": "admin",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "fee",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
 				"indexed": true,
 				"internalType": "address",
 				"name": "acoToken",
@@ -218,19 +707,103 @@
 		"anonymous": false,
 		"inputs": [
 			{
-				"indexed": true,
-				"internalType": "address",
-				"name": "oldAssetConverter",
-				"type": "address"
+				"components": [
+					{
+						"internalType": "int256",
+						"name": "tolerancePriceBelowMin",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "tolerancePriceBelowMax",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "tolerancePriceAboveMin",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "tolerancePriceAboveMax",
+						"type": "int256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "minStrikePrice",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "maxStrikePrice",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "minExpiration",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "maxExpiration",
+						"type": "uint256"
+					}
+				],
+				"indexed": false,
+				"internalType": "struct IACOPool2.PoolAcoPermissionConfigV2",
+				"name": "oldConfig",
+				"type": "tuple"
 			},
 			{
-				"indexed": true,
-				"internalType": "address",
-				"name": "newAssetConverter",
-				"type": "address"
+				"components": [
+					{
+						"internalType": "int256",
+						"name": "tolerancePriceBelowMin",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "tolerancePriceBelowMax",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "tolerancePriceAboveMin",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "tolerancePriceAboveMax",
+						"type": "int256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "minStrikePrice",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "maxStrikePrice",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "minExpiration",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "maxExpiration",
+						"type": "uint256"
+					}
+				],
+				"indexed": false,
+				"internalType": "struct IACOPool2.PoolAcoPermissionConfigV2",
+				"name": "newConfig",
+				"type": "tuple"
 			}
 		],
-		"name": "SetAssetConverter",
+		"name": "SetAcoPermissionConfigV2",
 		"type": "event"
 	},
 	{
@@ -250,75 +823,6 @@
 			}
 		],
 		"name": "SetBaseVolatility",
-		"type": "event"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"internalType": "uint256",
-				"name": "oldFee",
-				"type": "uint256"
-			},
-			{
-				"indexed": true,
-				"internalType": "uint256",
-				"name": "newFee",
-				"type": "uint256"
-			}
-		],
-		"name": "SetFee",
-		"type": "event"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": false,
-				"internalType": "address",
-				"name": "oldFeeDestination",
-				"type": "address"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "oldFee",
-				"type": "uint256"
-			},
-			{
-				"indexed": false,
-				"internalType": "address",
-				"name": "newFeeDestination",
-				"type": "address"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "newFee",
-				"type": "uint256"
-			}
-		],
-		"name": "SetFeeData",
-		"type": "event"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"internalType": "address",
-				"name": "oldFeeDestination",
-				"type": "address"
-			},
-			{
-				"indexed": true,
-				"internalType": "address",
-				"name": "newFeeDestination",
-				"type": "address"
-			}
-		],
-		"name": "SetFeeDestination",
 		"type": "event"
 	},
 	{
@@ -351,82 +855,6 @@
 		"inputs": [
 			{
 				"indexed": true,
-				"internalType": "uint256",
-				"name": "oldLendingPoolReferral",
-				"type": "uint256"
-			},
-			{
-				"indexed": true,
-				"internalType": "uint256",
-				"name": "newLendingPoolReferral",
-				"type": "uint256"
-			}
-		],
-		"name": "SetLendingPoolReferral",
-		"type": "event"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"internalType": "uint256",
-				"name": "oldMaxExpiration",
-				"type": "uint256"
-			},
-			{
-				"indexed": true,
-				"internalType": "uint256",
-				"name": "newMaxExpiration",
-				"type": "uint256"
-			}
-		],
-		"name": "SetMaxExpiration",
-		"type": "event"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"internalType": "uint256",
-				"name": "oldMaximumOpenAco",
-				"type": "uint256"
-			},
-			{
-				"indexed": true,
-				"internalType": "uint256",
-				"name": "newMaximumOpenAco",
-				"type": "uint256"
-			}
-		],
-		"name": "SetMaximumOpenAco",
-		"type": "event"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"internalType": "uint256",
-				"name": "oldMinExpiration",
-				"type": "uint256"
-			},
-			{
-				"indexed": true,
-				"internalType": "uint256",
-				"name": "newMinExpiration",
-				"type": "uint256"
-			}
-		],
-		"name": "SetMinExpiration",
-		"type": "event"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
 				"internalType": "address",
 				"name": "oldAdmin",
 				"type": "address"
@@ -439,61 +867,6 @@
 			}
 		],
 		"name": "SetPoolAdmin",
-		"type": "event"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "oldTolerancePriceBelow",
-				"type": "uint256"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "oldTolerancePriceAbove",
-				"type": "uint256"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "oldMinExpiration",
-				"type": "uint256"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "oldMaxExpiration",
-				"type": "uint256"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "newTolerancePriceBelow",
-				"type": "uint256"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "newTolerancePriceAbove",
-				"type": "uint256"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "newMinExpiration",
-				"type": "uint256"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "newMaxExpiration",
-				"type": "uint256"
-			}
-		],
-		"name": "SetPoolDataForAcoPermission",
 		"type": "event"
 	},
 	{
@@ -613,63 +986,6 @@
 		"inputs": [
 			{
 				"indexed": true,
-				"internalType": "uint256",
-				"name": "oldTolerancePriceAbove",
-				"type": "uint256"
-			},
-			{
-				"indexed": true,
-				"internalType": "uint256",
-				"name": "newTolerancePriceAbove",
-				"type": "uint256"
-			}
-		],
-		"name": "SetTolerancePriceAbove",
-		"type": "event"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"internalType": "uint256",
-				"name": "oldTolerancePriceBelow",
-				"type": "uint256"
-			},
-			{
-				"indexed": true,
-				"internalType": "uint256",
-				"name": "newTolerancePriceBelow",
-				"type": "uint256"
-			}
-		],
-		"name": "SetTolerancePriceBelow",
-		"type": "event"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"internalType": "uint256",
-				"name": "oldUnderlyingPriceAdjustPercentage",
-				"type": "uint256"
-			},
-			{
-				"indexed": true,
-				"internalType": "uint256",
-				"name": "newUnderlyingPriceAdjustPercentage",
-				"type": "uint256"
-			}
-		],
-		"name": "SetUnderlyingPriceAdjustPercentage",
-		"type": "event"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
 				"internalType": "address",
 				"name": "creator",
 				"type": "address"
@@ -688,25 +1004,6 @@
 			}
 		],
 		"name": "SetValidAcoCreator",
-		"type": "event"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"internalType": "uint256",
-				"name": "oldWithdrawOpenPositionPenalty",
-				"type": "uint256"
-			},
-			{
-				"indexed": true,
-				"internalType": "uint256",
-				"name": "newWithdrawOpenPositionPenalty",
-				"type": "uint256"
-			}
-		],
-		"name": "SetWithdrawOpenPositionPenalty",
 		"type": "event"
 	},
 	{
@@ -928,6 +1225,54 @@
 		"type": "function"
 	},
 	{
+		"inputs": [],
+		"name": "acoPermissionConfigV2",
+		"outputs": [
+			{
+				"internalType": "int256",
+				"name": "tolerancePriceBelowMin",
+				"type": "int256"
+			},
+			{
+				"internalType": "int256",
+				"name": "tolerancePriceBelowMax",
+				"type": "int256"
+			},
+			{
+				"internalType": "int256",
+				"name": "tolerancePriceAboveMin",
+				"type": "int256"
+			},
+			{
+				"internalType": "int256",
+				"name": "tolerancePriceAboveMax",
+				"type": "int256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "minStrikePrice",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "maxStrikePrice",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "minExpiration",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "maxExpiration",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
 		"inputs": [
 			{
 				"internalType": "uint256",
@@ -936,19 +1281,6 @@
 			}
 		],
 		"name": "acoTokens",
-		"outputs": [
-			{
-				"internalType": "address",
-				"name": "",
-				"type": "address"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "admin",
 		"outputs": [
 			{
 				"internalType": "address",
@@ -1005,19 +1337,6 @@
 			}
 		],
 		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "assetConverter",
-		"outputs": [
-			{
-				"internalType": "address",
-				"name": "",
-				"type": "address"
-			}
-		],
-		"stateMutability": "view",
 		"type": "function"
 	},
 	{
@@ -1166,66 +1485,6 @@
 			}
 		],
 		"stateMutability": "payable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "collateralAmount",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "minShares",
-				"type": "uint256"
-			},
-			{
-				"internalType": "address",
-				"name": "to",
-				"type": "address"
-			},
-			{
-				"internalType": "bool",
-				"name": "isLendingToken",
-				"type": "bool"
-			}
-		],
-		"name": "depositWithGasToken",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "payable",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "fee",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "feeDestination",
-		"outputs": [
-			{
-				"internalType": "address",
-				"name": "",
-				"type": "address"
-			}
-		],
-		"stateMutability": "view",
 		"type": "function"
 	},
 	{
@@ -1402,11 +1661,6 @@
 					},
 					{
 						"internalType": "address",
-						"name": "chiToken",
-						"type": "address"
-					},
-					{
-						"internalType": "address",
 						"name": "lendingPool",
 						"type": "address"
 					},
@@ -1441,25 +1695,40 @@
 						"type": "address"
 					},
 					{
+						"internalType": "bool",
+						"name": "isPrivate",
+						"type": "bool"
+					},
+					{
 						"components": [
 							{
-								"internalType": "uint256",
+								"internalType": "int256",
 								"name": "tolerancePriceBelowMin",
-								"type": "uint256"
+								"type": "int256"
 							},
 							{
-								"internalType": "uint256",
+								"internalType": "int256",
 								"name": "tolerancePriceBelowMax",
-								"type": "uint256"
+								"type": "int256"
 							},
 							{
-								"internalType": "uint256",
+								"internalType": "int256",
 								"name": "tolerancePriceAboveMin",
+								"type": "int256"
+							},
+							{
+								"internalType": "int256",
+								"name": "tolerancePriceAboveMax",
+								"type": "int256"
+							},
+							{
+								"internalType": "uint256",
+								"name": "minStrikePrice",
 								"type": "uint256"
 							},
 							{
 								"internalType": "uint256",
-								"name": "tolerancePriceAboveMax",
+								"name": "maxStrikePrice",
 								"type": "uint256"
 							},
 							{
@@ -1473,8 +1742,8 @@
 								"type": "uint256"
 							}
 						],
-						"internalType": "struct IACOPool2.PoolAcoPermissionConfig",
-						"name": "acoPermissionConfig",
+						"internalType": "struct IACOPool2.PoolAcoPermissionConfigV2",
+						"name": "acoPermissionConfigV2",
 						"type": "tuple"
 					},
 					{
@@ -1545,6 +1814,19 @@
 	},
 	{
 		"inputs": [],
+		"name": "isPrivate",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
 		"name": "lendCollateral",
 		"outputs": [],
 		"stateMutability": "nonpayable",
@@ -1558,58 +1840,6 @@
 				"internalType": "contract ILendingPool",
 				"name": "",
 				"type": "address"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "lendingPoolReferral",
-		"outputs": [
-			{
-				"internalType": "uint16",
-				"name": "",
-				"type": "uint16"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "maxExpiration",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "maximumOpenAco",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "minExpiration",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
 			}
 		],
 		"stateMutability": "view",
@@ -1813,23 +2043,33 @@
 			{
 				"components": [
 					{
-						"internalType": "uint256",
+						"internalType": "int256",
 						"name": "tolerancePriceBelowMin",
-						"type": "uint256"
+						"type": "int256"
 					},
 					{
-						"internalType": "uint256",
+						"internalType": "int256",
 						"name": "tolerancePriceBelowMax",
-						"type": "uint256"
+						"type": "int256"
 					},
 					{
-						"internalType": "uint256",
+						"internalType": "int256",
 						"name": "tolerancePriceAboveMin",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "tolerancePriceAboveMax",
+						"type": "int256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "minStrikePrice",
 						"type": "uint256"
 					},
 					{
 						"internalType": "uint256",
-						"name": "tolerancePriceAboveMax",
+						"name": "maxStrikePrice",
 						"type": "uint256"
 					},
 					{
@@ -1843,7 +2083,7 @@
 						"type": "uint256"
 					}
 				],
-				"internalType": "struct IACOPool2.PoolAcoPermissionConfig",
+				"internalType": "struct IACOPool2.PoolAcoPermissionConfigV2",
 				"name": "newConfig",
 				"type": "tuple"
 			}
@@ -2038,39 +2278,6 @@
 		"type": "function"
 	},
 	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "acoToken",
-				"type": "address"
-			},
-			{
-				"internalType": "uint256",
-				"name": "tokenAmount",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "restriction",
-				"type": "uint256"
-			},
-			{
-				"internalType": "address",
-				"name": "to",
-				"type": "address"
-			},
-			{
-				"internalType": "uint256",
-				"name": "deadline",
-				"type": "uint256"
-			}
-		],
-		"name": "swapWithGasToken",
-		"outputs": [],
-		"stateMutability": "payable",
-		"type": "function"
-	},
-	{
 		"inputs": [],
 		"name": "symbol",
 		"outputs": [
@@ -2078,32 +2285,6 @@
 				"internalType": "string",
 				"name": "",
 				"type": "string"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "tolerancePriceAbove",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "tolerancePriceBelow",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
 			}
 		],
 		"stateMutability": "view",
@@ -2202,19 +2383,6 @@
 		"type": "function"
 	},
 	{
-		"inputs": [],
-		"name": "underlyingPriceAdjustPercentage",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
 		"inputs": [
 			{
 				"internalType": "address",
@@ -2275,58 +2443,6 @@
 	{
 		"inputs": [
 			{
-				"internalType": "uint256",
-				"name": "shares",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "minCollateral",
-				"type": "uint256"
-			},
-			{
-				"internalType": "address",
-				"name": "account",
-				"type": "address"
-			},
-			{
-				"internalType": "bool",
-				"name": "withdrawLendingToken",
-				"type": "bool"
-			}
-		],
-		"name": "withdrawNoLockedWithGasToken",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "underlyingWithdrawn",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "strikeAssetWithdrawn",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "withdrawOpenPositionPenalty",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
 				"internalType": "address",
 				"name": "token",
 				"type": "address"
@@ -2361,50 +2477,6 @@
 			}
 		],
 		"name": "withdrawWithLocked",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "underlyingWithdrawn",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "strikeAssetWithdrawn",
-				"type": "uint256"
-			},
-			{
-				"internalType": "address[]",
-				"name": "acos",
-				"type": "address[]"
-			},
-			{
-				"internalType": "uint256[]",
-				"name": "acosAmount",
-				"type": "uint256[]"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "shares",
-				"type": "uint256"
-			},
-			{
-				"internalType": "address",
-				"name": "account",
-				"type": "address"
-			},
-			{
-				"internalType": "bool",
-				"name": "withdrawLendingToken",
-				"type": "bool"
-			}
-		],
-		"name": "withdrawWithLockedWithGasToken",
 		"outputs": [
 			{
 				"internalType": "uint256",

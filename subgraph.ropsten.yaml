@@ -167,6 +167,8 @@ templates:
         - name: ACOPoolStrategy
           file: ./abis/ACOPoolStrategy.json
       eventHandlers:
+        - event: SetImplementation(address,address)
+          handler: handleImplementationChange
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
         - event: Swap(indexed address,indexed address,uint256,uint256,uint256,uint256,uint256)
@@ -191,6 +193,8 @@ templates:
           handler: handleForbiddenAcoCreator
         - event: SetAcoPermissionConfig((uint256,uint256,uint256,uint256,uint256,uint256),(uint256,uint256,uint256,uint256,uint256,uint256))
           handler: handleNewAcoPermissionConfig
+        - event: SetAcoPermissionConfigV2((int256,int256,int256,int256,uint256,uint256,uint256,uint256),(int256,int256,int256,int256,uint256,uint256,uint256,uint256))
+          handler: handleNewAcoPermissionConfigV2
         - event: SetProtocolConfig((uint16,uint256,uint256,uint256,uint256,address,address),(uint16,uint256,uint256,uint256,uint256,address,address))
           handler: handleNewProtocolConfig
         - event: SetLendingPoolReferral(indexed uint256,indexed uint256)

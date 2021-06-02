@@ -1,7 +1,7 @@
 import { Address, BigInt, Bytes } from '@graphprotocol/graph-ts'
 import { Transaction, Token, ACOPool2, ACOPoolFactory2 } from '../types/schema'
 import { NewAcoPool } from '../types/templates/ACOPoolFactory2/ACOPoolFactory2'
-import { ACOPool2 as ACOPoolContract, ACOPool2__acoPermissionConfigResult, ACOPool2__protocolConfigResult } from '../types/templates/ACOPoolFactory2/ACOPool2'
+import { ACOPool2 as ACOPoolContract, ACOPool2__acoPermissionConfigResult, ACOPool2__acoPermissionConfigV2Result, ACOPool2__protocolConfigResult } from '../types/templates/ACOPoolFactory2/ACOPool2'
 import { ACOPool2 as ACOPoolTemplate, ACOPoolFactory2 as ACOPoolFactoryTemplate } from '../types/templates'
 import {
   fetchTokenSymbol,
@@ -17,7 +17,8 @@ import {
   ACO_POOL_IMPL_V3_ADDRESS,
   ONE_BI,
   setAssetConverterHelper,
-  ACO_POOL_FACTORY_ADDRESS
+  ACO_POOL_FACTORY_ADDRESS,
+  ACO_POOL_IMPL_V4_ADDRESS
 } from './helpers'
 import { setAcoPoolAdminHistory, setAcoPoolBaseVolatilityHistory, setAcoPoolPermissionHistory, setAcoPoolStrategyHistory } from './acoPool'
 
@@ -65,6 +66,9 @@ export function handleNewAcoPool(event: NewAcoPool): void {
   let protocolConfig = null as ACOPool2__protocolConfigResult
   let implementation = event.params.acoPoolImplementation.toHexString()
   if (implementation == ACO_POOL_IMPL_V1_ADDRESS || implementation == ACO_POOL_IMPL_V2_ADDRESS || implementation == ACO_POOL_IMPL_V3_ADDRESS) {
+    acoPool.minStrikePrice = ZERO_BD
+    acoPool.maxStrikePrice = ZERO_BD
+    acoPool.isPrivate = false
     acoPool.assetConverter = acoPoolContract.assetConverter()
     acoPool.feeDestination = acoPoolContract.feeDestination()
     acoPool.maximumOpenAco = acoPoolContract.maximumOpenAco()
@@ -104,13 +108,29 @@ export function handleNewAcoPool(event: NewAcoPool): void {
     acoPool.maximumOpenAco = protocolConfig.value4 as BigInt
     acoPool.feeDestination = protocolConfig.value5 as Address
     acoPool.assetConverter = protocolConfig.value6 as Address
-    let acoPermissionConfig = acoPoolContract.acoPermissionConfig() as ACOPool2__acoPermissionConfigResult
-    acoPool.tolerancePriceBelowMin = convertTokenToDecimal(acoPermissionConfig.value0 as BigInt, BigInt.fromI32(5))
-    acoPool.tolerancePriceBelowMax = convertTokenToDecimal(acoPermissionConfig.value1 as BigInt, BigInt.fromI32(5))
-    acoPool.tolerancePriceAboveMin = convertTokenToDecimal(acoPermissionConfig.value2 as BigInt, BigInt.fromI32(5))
-    acoPool.tolerancePriceAboveMax = convertTokenToDecimal(acoPermissionConfig.value3 as BigInt, BigInt.fromI32(5))
-    acoPool.minExpiration = acoPermissionConfig.value4 as BigInt
-    acoPool.maxExpiration = acoPermissionConfig.value5 as BigInt
+    if (implementation == ACO_POOL_IMPL_V4_ADDRESS) {
+      acoPool.minStrikePrice = ZERO_BD
+      acoPool.maxStrikePrice = ZERO_BD
+      acoPool.isPrivate = false
+      let acoPermissionConfig = acoPoolContract.acoPermissionConfig() as ACOPool2__acoPermissionConfigResult
+      acoPool.tolerancePriceBelowMin = convertTokenToDecimal(acoPermissionConfig.value0 as BigInt, BigInt.fromI32(5))
+      acoPool.tolerancePriceBelowMax = convertTokenToDecimal(acoPermissionConfig.value1 as BigInt, BigInt.fromI32(5))
+      acoPool.tolerancePriceAboveMin = convertTokenToDecimal(acoPermissionConfig.value2 as BigInt, BigInt.fromI32(5))
+      acoPool.tolerancePriceAboveMax = convertTokenToDecimal(acoPermissionConfig.value3 as BigInt, BigInt.fromI32(5))
+      acoPool.minExpiration = acoPermissionConfig.value4 as BigInt
+      acoPool.maxExpiration = acoPermissionConfig.value5 as BigInt
+    } else {
+      acoPool.isPrivate = acoPoolContract.isPrivate()
+      let acoPermissionConfig = acoPoolContract.acoPermissionConfigV2() as ACOPool2__acoPermissionConfigV2Result
+      acoPool.tolerancePriceBelowMin = convertTokenToDecimal(acoPermissionConfig.value0 as BigInt, BigInt.fromI32(5))
+      acoPool.tolerancePriceBelowMax = convertTokenToDecimal(acoPermissionConfig.value1 as BigInt, BigInt.fromI32(5))
+      acoPool.tolerancePriceAboveMin = convertTokenToDecimal(acoPermissionConfig.value2 as BigInt, BigInt.fromI32(5))
+      acoPool.tolerancePriceAboveMax = convertTokenToDecimal(acoPermissionConfig.value3 as BigInt, BigInt.fromI32(5))
+      acoPool.minStrikePrice = convertTokenToDecimal(acoPermissionConfig.value4 as BigInt, strikeAsset.decimals)
+      acoPool.maxStrikePrice = convertTokenToDecimal(acoPermissionConfig.value5 as BigInt, strikeAsset.decimals)
+      acoPool.minExpiration = acoPermissionConfig.value6 as BigInt
+      acoPool.maxExpiration = acoPermissionConfig.value7 as BigInt
+    }
   }
 
   if (implementation != ACO_POOL_IMPL_V1_ADDRESS) {
@@ -145,7 +165,7 @@ export function handleNewAcoPool(event: NewAcoPool): void {
 
   acoPool.lastStrategyHistoryId = setAcoPoolStrategyHistory(event.params.acoPool, acoPool.strategy, event.transaction, tx)
   acoPool.lastBaseVolatilityHistoryId = setAcoPoolBaseVolatilityHistory(event.params.acoPool, acoPool.baseVolatility, event.transaction, tx)
-  acoPool.lastAcoPoolPermissionHistoryId = setAcoPoolPermissionHistory(event.params.acoPool, acoPool.tolerancePriceBelowMin, acoPool.tolerancePriceBelowMax, acoPool.tolerancePriceAboveMin, acoPool.tolerancePriceAboveMax, acoPool.minExpiration, acoPool.maxExpiration, event.transaction, tx)
+  acoPool.lastAcoPoolPermissionHistoryId = setAcoPoolPermissionHistory(event.params.acoPool, acoPool.tolerancePriceBelowMin, acoPool.tolerancePriceBelowMax, acoPool.tolerancePriceAboveMin, acoPool.tolerancePriceAboveMax, acoPool.minStrikePrice, acoPool.maxStrikePrice, acoPool.minExpiration, acoPool.maxExpiration, event.transaction, tx)
   if (acoPool.poolAdmin != null) {
     acoPool.lastPoolAdminHistoryId = setAcoPoolAdminHistory(event.params.acoPool, acoPool.poolAdmin as Bytes, event.transaction, tx)
   }
