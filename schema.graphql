@@ -156,6 +156,7 @@ type ACOPool2 @entity {
   decimals: BigInt!
   isCall: Boolean!
   isPrivate: Boolean!
+  poolId: BigInt!
   totalSupply: BigDecimal!
   tx: Transaction!
   implementation: Bytes!

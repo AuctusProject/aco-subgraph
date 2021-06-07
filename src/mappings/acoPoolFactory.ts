@@ -41,6 +41,7 @@ export function handleNewAcoPool(event: NewAcoPool): void {
   acoPool.decimals = fetchTokenDecimals(event.params.acoPool)
   acoPool.isCall = event.params.isCall
   acoPool.implementation = event.params.acoPoolImplementation
+  acoPool.poolId = ZERO_BI
   acoPool.tx = tx.id
   acoPool.totalSupply = ZERO_BD
   acoPool.openAcosCount = ZERO_BI
@@ -121,6 +122,10 @@ export function handleNewAcoPool(event: NewAcoPool): void {
       acoPool.maxExpiration = acoPermissionConfig.value5 as BigInt
     } else {
       acoPool.isPrivate = acoPoolContract.isPrivate()
+      let poolIdResult = acoPoolContract.try_poolId()
+      if (!poolIdResult.reverted) {
+        acoPool.poolId = poolIdResult.value as BigInt
+      }
       let acoPermissionConfig = acoPoolContract.acoPermissionConfigV2() as ACOPool2__acoPermissionConfigV2Result
       acoPool.tolerancePriceBelowMin = convertTokenToDecimal(acoPermissionConfig.value0 as BigInt, BigInt.fromI32(5))
       acoPool.tolerancePriceBelowMax = convertTokenToDecimal(acoPermissionConfig.value1 as BigInt, BigInt.fromI32(5))
