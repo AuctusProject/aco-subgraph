@@ -354,6 +354,7 @@ function handleSwapOnZrxOrOtc(tokenAmount: BigDecimal, aco: ACOToken, event: Tra
           } else {
             if (isBuy) {
               if (tokenAmount.equals(zrxData[i].makerSize as BigDecimal)) {
+                maker = zrxData[i].maker as string
                 data.swapPaidAmount = convertDecimalToToken(zrxData[i].takerSize as BigDecimal, data.swapToken.decimals)
                 break
               }

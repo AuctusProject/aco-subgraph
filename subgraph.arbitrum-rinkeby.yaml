@@ -1,0 +1,330 @@
+specVersion: 0.0.2
+description: Auctus is a decentralized options protocol. Users can mint and trade call and put options on any ERC20 token.
+repository: https://github.com/AuctusProject/aco-subgraph
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: ACOFactory
+    network: arbitrum-rinkeby
+    source:
+      address: '0x4027c2f9DdF0eDd831cb70c043D53ec6217a48Eb'
+      abi: ACOFactory
+      startBlock: 32247
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      file: ./src/mappings/acoFactory.ts
+      entities:
+        - ACOToken
+        - Token
+        - Transaction
+        - ACOTokenSituation
+        - ACOPoolFactory2
+      abis:
+        - name: ACOFactory
+          file: ./abis/ACOFactory.json
+        - name: ACOToken
+          file: ./abis/ACOToken.json
+        - name: ACOPoolFactory2
+          file: ./abis/ACOPoolFactory2.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+      eventHandlers:
+        - event: NewAcoToken(indexed address,indexed address,indexed bool,uint256,uint256,address,address)
+          handler: handleNewACODeprecated
+        - event: NewAcoTokenData(indexed address,indexed address,indexed bool,uint256,uint256,address,address,address)
+          handler: handleNewACO
+templates:
+  - kind: ethereum/contract
+    name: ACOToken
+    network: arbitrum-rinkeby
+    source:
+      abi: ACOToken
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      file: ./src/mappings/acoToken.ts
+      entities:
+        - ACOToken
+        - Token
+        - Transaction
+        - ACOTokenSituation
+        - ACOSwap
+        - Burn
+        - Mint
+        - Exercise
+        - ExercisedAccount
+        - ACOAccount
+        - AccountRedeem
+      abis:
+        - name: ACOFactory
+          file: ./abis/ACOFactory.json
+        - name: ACOToken
+          file: ./abis/ACOToken.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+      eventHandlers:
+        - event: Assigned(indexed address,indexed address,uint256,uint256)
+          handler: handleExerciseAssignment
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+        - event: TransferCollateralOwnership(indexed address,indexed address,uint256)
+          handler: handleTransferCollateralOwnership
+        - event: CollateralDeposit(indexed address,uint256)
+          handler: handleMint
+        - event: CollateralWithdraw(indexed address,indexed address,uint256,uint256)
+          handler: handleCollateralWithdraw
+  - kind: ethereum/contract
+    name: ACOPoolFactory2
+    network: arbitrum-rinkeby
+    source:
+      abi: ACOPoolFactory2
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      file: ./src/mappings/acoPoolFactory.ts
+      entities:
+        - ACOPoolFactory2
+        - ACOPool2
+        - Token
+        - Transaction
+        - ACOPoolPermission
+        - ACOPoolBaseVolatility
+        - ACOPoolStrategy
+        - ACOPoolAdmin
+        - ACOAssetConverterHelper
+        - AggregatorProxy
+        - AggregatorInterface
+      abis:
+        - name: ACOPoolFactory2
+          file: ./abis/ACOPoolFactory2.json
+        - name: ACOAssetConverterHelper
+          file: ./abis/ACOAssetConverterHelper.json
+        - name: AggregatorProxy
+          file: ./abis/AggregatorProxy.json
+        - name: AggregatorInterface
+          file: ./abis/AggregatorInterface.json
+        - name: ACOPool2
+          file: ./abis/ACOPool2.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+      eventHandlers:
+        - event: NewAcoPool(indexed address,indexed address,indexed bool,address,address)
+          handler: handleNewAcoPool
+  - kind: ethereum/contract
+    name: ACOPool2
+    network: arbitrum-rinkeby
+    source:
+      abi: ACOPool2
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      file: ./src/mappings/acoPool.ts
+      entities:
+        - ACOPool2
+        - ACOToken
+        - Token
+        - Transaction
+        - ACOSwap
+        - PoolSwap
+        - PoolAccount
+        - CollateralRestore
+        - ACORedeem
+        - ACOAmount
+        - Withdrawal
+        - Deposit
+        - ACOCreatorPermission
+        - ACOOnPool
+        - ACOPoolPermission
+        - ACOPoolBaseVolatility
+        - ACOPoolStrategy
+        - ACOPoolAdmin
+        - ACOAssetConverterHelper
+        - AggregatorProxy
+        - AggregatorInterface
+        - PoolHistoricalShare
+        - ACOPoolDynamicData
+        - PoolDynamicData
+        - ACOPoolFactory2
+      abis:
+        - name: ACOToken
+          file: ./abis/ACOToken.json
+        - name: ACOAssetConverterHelper
+          file: ./abis/ACOAssetConverterHelper.json
+        - name: AggregatorProxy
+          file: ./abis/AggregatorProxy.json
+        - name: AggregatorInterface
+          file: ./abis/AggregatorInterface.json
+        - name: ACOPool2
+          file: ./abis/ACOPool2.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+        - name: ACOPoolStrategy
+          file: ./abis/ACOPoolStrategy.json
+      eventHandlers:
+        - event: SetImplementation(address,address)
+          handler: handleImplementationChange
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+        - event: Swap(indexed address,indexed address,uint256,uint256,uint256,uint256,uint256)
+          handler: handleSwap
+        - event: RestoreCollateral(uint256,uint256)
+          handler: handleRestoreCollateral
+        - event: ACORedeem(indexed address,uint256,uint256,uint256)
+          handler: handleACORedeem
+        - event: Deposit(indexed address,uint256,uint256)
+          handler: handleDeposit
+        - event: Withdraw(indexed address,uint256,bool,uint256,uint256,address[],uint256[])
+          handler: handleWithdraw
+        - event: SetStrategy(indexed address,indexed address)
+          handler: handleNewStrategy
+        - event: SetBaseVolatility(indexed uint256,indexed uint256)
+          handler: handleNewBaseVolatility
+        - event: SetValidAcoCreator(indexed address,indexed bool,indexed bool)
+          handler: handleValidAcoCreator
+        - event: SetPoolAdmin(indexed address,indexed address)
+          handler: handleNewPoolAdmin
+        - event: SetForbiddenAcoCreator(indexed address,indexed bool,indexed bool)
+          handler: handleForbiddenAcoCreator
+        - event: SetAcoPermissionConfig((uint256,uint256,uint256,uint256,uint256,uint256),(uint256,uint256,uint256,uint256,uint256,uint256))
+          handler: handleNewAcoPermissionConfig
+        - event: SetAcoPermissionConfigV2((int256,int256,int256,int256,uint256,uint256,uint256,uint256),(int256,int256,int256,int256,uint256,uint256,uint256,uint256))
+          handler: handleNewAcoPermissionConfigV2
+        - event: SetProtocolConfig((uint16,uint256,uint256,uint256,uint256,address,address),(uint16,uint256,uint256,uint256,uint256,address,address))
+          handler: handleNewProtocolConfig
+        - event: SetLendingPoolReferral(indexed uint256,indexed uint256)
+          handler: handleNewLendingPoolReferral
+        - event: SetPoolDataForAcoPermission(uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256)
+          handler: handleNewPoolDataForAcoPermission
+        - event: SetFeeData(address,uint256,address,uint256)
+          handler: handleNewFeeData
+        - event: SetAssetConverter(indexed address,indexed address)
+          handler: handleNewAssetConverter
+        - event: SetTolerancePriceAbove(indexed uint256,indexed uint256)
+          handler: handleNewTolerancePriceAbove
+        - event: SetTolerancePriceBelow(indexed uint256,indexed uint256)
+          handler: handleNewTolerancePriceBelow
+        - event: SetMinExpiration(indexed uint256,indexed uint256)
+          handler: handleNewMinExpiration
+        - event: SetMaxExpiration(indexed uint256,indexed uint256)
+          handler: handleNewMaxExpiration
+        - event: SetWithdrawOpenPositionPenalty(indexed uint256,indexed uint256)
+          handler: handleNewWithdrawOpenPositionPenalty
+        - event: SetUnderlyingPriceAdjustPercentage(indexed uint256,indexed uint256)
+          handler: handleNewUnderlyingPriceAdjustPercentage
+        - event: SetMaximumOpenAco(indexed uint256,indexed uint256)
+          handler: handleNewMaximumOpenAco
+        - event: SetFee(indexed uint256,indexed uint256)
+          handler: handleNewFee
+        - event: SetFeeDestination(indexed address,indexed address)
+          handler: handleNewFeeDestination
+  - kind: ethereum/contract
+    name: ACOAssetConverterHelper
+    network: arbitrum-rinkeby
+    source:
+      abi: ACOAssetConverterHelper
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      file: ./src/mappings/aggregator.ts
+      entities:
+        - ACOAssetConverterHelper
+        - AggregatorProxy
+        - AggregatorInterface
+        - Transaction
+        - PoolHistoricalShare
+        - ACOPoolDynamicData
+        - PoolDynamicData
+        - ACOPoolFactory2
+        - ACOPool2
+      abis:
+        - name: ACOAssetConverterHelper
+          file: ./abis/ACOAssetConverterHelper.json
+        - name: AggregatorProxy
+          file: ./abis/AggregatorProxy.json
+        - name: AggregatorInterface
+          file: ./abis/AggregatorInterface.json
+        - name: ACOPoolStrategy
+          file: ./abis/ACOPoolStrategy.json
+        - name: ACOPool2
+          file: ./abis/ACOPool2.json
+        - name: ACOToken
+          file: ./abis/ACOToken.json
+      eventHandlers:
+        - event: SetAggregator(indexed address,indexed address,address,address)
+          handler: handleNewProxyAggregator
+  - kind: ethereum/contract
+    name: AggregatorProxy
+    network: arbitrum-rinkeby
+    source:
+      abi: AggregatorProxy
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      file: ./src/mappings/aggregator.ts
+      entities:
+        - AggregatorProxy
+        - AggregatorInterface
+        - Transaction
+        - PoolHistoricalShare
+        - ACOPoolDynamicData
+        - PoolDynamicData
+        - ACOPoolFactory2
+        - ACOPool2
+      abis:
+        - name: ACOAssetConverterHelper
+          file: ./abis/ACOAssetConverterHelper.json
+        - name: AggregatorProxy
+          file: ./abis/AggregatorProxy.json
+        - name: AggregatorInterface
+          file: ./abis/AggregatorInterface.json
+        - name: ACOPoolStrategy
+          file: ./abis/ACOPoolStrategy.json
+        - name: ACOPool2
+          file: ./abis/ACOPool2.json
+        - name: ACOToken
+          file: ./abis/ACOToken.json
+      callHandlers:
+        - function: confirmAggregator(address)
+          handler: handleNewAggregator
+  - kind: ethereum/contract
+    name: AggregatorInterface
+    network: arbitrum-rinkeby
+    source:
+      abi: AggregatorInterface
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      file: ./src/mappings/aggregator.ts
+      entities:
+        - AggregatorInterface
+        - Transaction
+        - PoolHistoricalShare
+        - ACOPoolDynamicData
+        - PoolDynamicData
+        - ACOPoolFactory2
+        - ACOPool2
+      abis:
+        - name: ACOAssetConverterHelper
+          file: ./abis/ACOAssetConverterHelper.json
+        - name: AggregatorInterface
+          file: ./abis/AggregatorInterface.json
+        - name: AggregatorProxy
+          file: ./abis/AggregatorProxy.json
+        - name: ACOPoolStrategy
+          file: ./abis/ACOPoolStrategy.json
+        - name: ACOPool2
+          file: ./abis/ACOPool2.json
+        - name: ACOToken
+          file: ./abis/ACOToken.json
+      eventHandlers:
+        - event: AnswerUpdated(indexed int256,indexed uint256,uint256)
+          handler: handleNewAggregatorAnswer

@@ -18,7 +18,8 @@ import {
   ONE_BI,
   setAssetConverterHelper,
   ACO_POOL_FACTORY_ADDRESS,
-  ACO_POOL_IMPL_V4_ADDRESS
+  ACO_POOL_IMPL_V4_ADDRESS,
+  ADDRESS_ZERO
 } from './helpers'
 import { setAcoPoolAdminHistory, setAcoPoolBaseVolatilityHistory, setAcoPoolPermissionHistory, setAcoPoolStrategyHistory } from './acoPool'
 
@@ -60,9 +61,14 @@ export function handleNewAcoPool(event: NewAcoPool): void {
   acoPool.acosDynamicDataCount = ZERO_BI
   acoPool.historicalSharesCount = ZERO_BI
   acoPool.lastHistoricalShareUpdate = ZERO_BI
-  acoPool.gasToken = acoPoolContract.chiToken() as Address
   acoPool.strategy = acoPoolContract.strategy() as Address
   acoPool.baseVolatility = convertTokenToDecimal(acoPoolContract.baseVolatility() as BigInt, BigInt.fromI32(5))
+  let gasTokenResult = acoPoolContract.try_chiToken()
+  if (!gasTokenResult.reverted) {
+    acoPool.gasToken = gasTokenResult.value as Address
+  } else {
+    acoPool.gasToken = Address.fromString(ADDRESS_ZERO)
+  }
   
   let protocolConfig = null as ACOPool2__protocolConfigResult
   let implementation = event.params.acoPoolImplementation.toHexString()
