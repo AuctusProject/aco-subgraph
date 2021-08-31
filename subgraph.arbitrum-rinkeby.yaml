@@ -8,9 +8,9 @@ dataSources:
     name: ACOFactory
     network: arbitrum-rinkeby
     source:
-      address: '0x4027c2f9DdF0eDd831cb70c043D53ec6217a48Eb'
+      address: '0x952703308Fe5Be62E857ab453D1664589662d834'
       abi: ACOFactory
-      startBlock: 32247
+      startBlock: 2000000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.4
