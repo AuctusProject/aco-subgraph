@@ -4,7 +4,7 @@ import { Token, Transaction, ACOTokenSituation, AggregatorProxy, AggregatorInter
 import { ACOAssetConverterHelper as ACOAssetConverterHelperContract } from '../types/templates/ACOAssetConverterHelper/ACOAssetConverterHelper'
 import { AggregatorProxy as AggregatorProxyContract } from '../types/templates/AggregatorProxy/AggregatorProxy'
 import { AggregatorInterface as AggregatorInterfaceContract } from '../types/templates/AggregatorInterface/AggregatorInterface'
-import { ACOAssetConverterHelper as AssetConverterTemplate, AggregatorProxy as AggregatorProxyTemplate, AggregatorInterface as AggregatorInterfaceTemplate } from '../types/templates'
+import { ACOAssetConverterHelper as AssetConverterTemplate } from '../types/templates'
 
 let network = dataSource.network()
 
@@ -435,7 +435,7 @@ export function setAggregatorProxy(
       proxy.aggregator = agg.id
 
       if (isNew) {    
-        AggregatorProxyTemplate.create(Address.fromString(proxyAddress.toHexString()))
+        // AggregatorProxyTemplate.create(Address.fromString(proxyAddress.toHexString()))
       }
       proxy.save()
       return agg
@@ -469,7 +469,7 @@ export function setAggregatorInterface(
   agg.oracleUpdatedAt = timestamp
   agg.tx = tx.id
   if (isNew) {
-    AggregatorInterfaceTemplate.create(Address.fromString(aggregator.toHexString()))
+    // AggregatorInterfaceTemplate.create(Address.fromString(aggregator.toHexString()))
   }
   agg.save()
   return agg
