@@ -4,7 +4,7 @@ import { Token, Transaction, ACOTokenSituation, AggregatorProxy, AggregatorInter
 import { ACOAssetConverterHelper as ACOAssetConverterHelperContract } from '../types/templates/ACOAssetConverterHelper/ACOAssetConverterHelper'
 import { AggregatorProxy as AggregatorProxyContract } from '../types/templates/AggregatorProxy/AggregatorProxy'
 import { AggregatorInterface as AggregatorInterfaceContract } from '../types/templates/AggregatorInterface/AggregatorInterface'
-import { ACOAssetConverterHelper as AssetConverterTemplate } from '../types/templates'
+import { ACOAssetConverterHelper as AssetConverterTemplate, AggregatorProxy as AggregatorProxyTemplate, AggregatorInterface as AggregatorInterfaceTemplate } from '../types/templates'
 
 let network = dataSource.network()
 
@@ -30,7 +30,29 @@ let ACO_POOL_IMPLEMENTATION_V3 = '0xb4f28d9aa4ae8070ba1dea1f2fd888a64b45aa17'
 let ACO_POOL_IMPLEMENTATION_V4 = '0x366a6677fe197e3f1e76eb0f7cd2aaf35939d51a'
 let ACO_POOL_IMPLEMENTATION_V5 = '0x6bdbd1adbf93d24ef55fb35d23d695c8f82c6d6a'
 
-if (network == 'kovan') {
+if (network == 'arbitrum-one') {
+  WBTC = '0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f'
+  USDC = '0xff970a61a04b1ca14834a43f5de4533ebddb5cc8'
+  AUC = 'todo'
+  ACO_FACTORY = '0xe833cb08f7569168a408a24440e550c8897ac4d6'
+  ACO_POOL_FACTORY = '0x6d18be2167030adc16f64f1c9e0b7294b2011020'
+  ZRX_EXCHANGE = 'na'
+  ZRX_V4_EXCHANGE = 'todo'
+  BUYER = 'na'
+  BUYER_V2 = '0xa79ac0fc650d2751b93058a89f29211d9b2d53c4'
+  WRITER = 'na'
+  WRITER_V2 = 'todo'
+  VAULT_V1 = 'na'
+  VAULT_V2 = 'na'
+  ACO_OTC_V1 = 'na'
+  ACO_OTC_V2 = '0xc91c5dda23704e1f4279d4947b7fa59101aebb86'
+  ACO_POOL_BLOCK = 247650
+  ACO_POOL_IMPLEMENTATION_V1 = 'na'
+  ACO_POOL_IMPLEMENTATION_V2 = 'na'
+  ACO_POOL_IMPLEMENTATION_V3 = 'na'
+  ACO_POOL_IMPLEMENTATION_V4 = 'na'
+  ACO_POOL_IMPLEMENTATION_V5 = '0x8869e326a563478a9f7aae4b8a78b518fb24c32f'
+} else if (network == 'kovan') {
   WBTC = '0x4000132b399b6c85e465b60c9d897b6745149fee'
   USDC = '0xe22da380ee6b445bb8273c81944adeb6e8450422'
   AUC = '0xa24cbf0e7596b3601b01045791a73897b39068e4'
@@ -435,7 +457,7 @@ export function setAggregatorProxy(
       proxy.aggregator = agg.id
 
       if (isNew) {    
-        // AggregatorProxyTemplate.create(Address.fromString(proxyAddress.toHexString()))
+        AggregatorProxyTemplate.create(Address.fromString(proxyAddress.toHexString()))
       }
       proxy.save()
       return agg
@@ -469,7 +491,7 @@ export function setAggregatorInterface(
   agg.oracleUpdatedAt = timestamp
   agg.tx = tx.id
   if (isNew) {
-    // AggregatorInterfaceTemplate.create(Address.fromString(aggregator.toHexString()))
+    AggregatorInterfaceTemplate.create(Address.fromString(aggregator.toHexString()))
   }
   agg.save()
   return agg
