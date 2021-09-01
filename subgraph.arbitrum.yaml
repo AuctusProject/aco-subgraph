@@ -260,41 +260,6 @@ templates:
         - event: SetAggregator(indexed address,indexed address,address,address)
           handler: handleNewProxyAggregator
   - kind: ethereum/contract
-    name: AggregatorProxy
-    network: arbitrum-one
-    source:
-      abi: AggregatorProxy
-    mapping:
-      kind: ethereum/events
-      apiVersion: 0.0.4
-      language: wasm/assemblyscript
-      file: ./src/mappings/aggregator.ts
-      entities:
-        - AggregatorProxy
-        - AggregatorInterface
-        - Transaction
-        - PoolHistoricalShare
-        - ACOPoolDynamicData
-        - PoolDynamicData
-        - ACOPoolFactory2
-        - ACOPool2
-      abis:
-        - name: ACOAssetConverterHelper
-          file: ./abis/ACOAssetConverterHelper.json
-        - name: AggregatorProxy
-          file: ./abis/AggregatorProxy.json
-        - name: AggregatorInterface
-          file: ./abis/AggregatorInterface.json
-        - name: ACOPoolStrategy
-          file: ./abis/ACOPoolStrategy.json
-        - name: ACOPool2
-          file: ./abis/ACOPool2.json
-        - name: ACOToken
-          file: ./abis/ACOToken.json
-      callHandlers:
-        - function: confirmAggregator(address)
-          handler: handleNewAggregator
-  - kind: ethereum/contract
     name: AggregatorInterface
     network: arbitrum-one
     source:
