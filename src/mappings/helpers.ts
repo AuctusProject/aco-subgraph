@@ -39,7 +39,7 @@ if (network == 'arbitrum-one') {
   ZRX_EXCHANGE = 'na'
   ZRX_V4_EXCHANGE = 'todo'
   BUYER = 'na'
-  BUYER_V2 = '0xa79ac0fc650d2751b93058a89f29211d9b2d53c4'
+  BUYER_V2 = '0xd0d8066885e07539cf4d9fecd19d2729a310be4e'
   WRITER = 'na'
   WRITER_V2 = 'todo'
   VAULT_V1 = 'na'
