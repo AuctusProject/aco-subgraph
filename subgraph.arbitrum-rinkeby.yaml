@@ -261,7 +261,7 @@ templates:
           handler: handleNewProxyAggregator
   - kind: ethereum/contract
     name: AggregatorInterface
-    network: arbitrum-one
+    network: arbitrum-rinkeby
     source:
       abi: AggregatorInterface
     mapping:
