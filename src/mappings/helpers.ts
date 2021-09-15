@@ -372,6 +372,14 @@ export function getAggregatorInterface(event: ethereum.Event, assetConverter: By
         return null as AggregatorInterface
       }
     }
+    if (!isNew && (network == 'arbitrum-one' || network == 'arbitrum-rinkeby' || network == 'rinkeby')) {
+      let proxyContract = AggregatorProxyContract.bind(pairDataResult.value.value0) as AggregatorProxyContract
+      let aggResult = proxyContract.try_aggregator()
+      if (!aggResult.reverted && aggResult.value.toHexString() != ADDRESS_ZERO && aggResult.value.toHexString() != proxy.aggregator) {
+        tx = getTransaction(event) as Transaction
+        return setAggregatorInterface(tx, pairDataResult.value.value0, aggResult.value, true)
+      }
+    }
     let aggContract = AggregatorInterfaceContract.bind(Address.fromString(proxy.aggregator)) as AggregatorInterfaceContract
     let agg = AggregatorInterface.load(proxy.aggregator) as AggregatorInterface
     if (agg == null) {
@@ -453,7 +461,7 @@ export function setAggregatorProxy(
     let proxyContract = AggregatorProxyContract.bind(Address.fromString(proxyAddress.toHexString())) as AggregatorProxyContract
     let aggResult = proxyContract.try_aggregator()
     if (!aggResult.reverted && aggResult.value.toHexString() != ADDRESS_ZERO) {
-      let agg = setAggregatorInterface(transaction, block, logIndex, proxyAddress, aggResult.value)
+      let agg = setAggregatorInterface(tx, proxyAddress, aggResult.value, false)
       proxy.aggregator = agg.id
 
       if (isNew) {    
@@ -467,11 +475,10 @@ export function setAggregatorProxy(
 }
 
 export function setAggregatorInterface(
-  transaction: ethereum.Transaction, 
-  block : ethereum.Block, 
-  logIndex: BigInt,
+  tx: Transaction, 
   proxy: Bytes, 
-  aggregator: Bytes): AggregatorInterface {
+  aggregator: Bytes,
+  setAggProxy: boolean): AggregatorInterface {
   let aggContract = AggregatorInterfaceContract.bind(Address.fromString(aggregator.toHexString())) as AggregatorInterfaceContract
   let agg = AggregatorInterface.load(aggregator.toHexString()) as AggregatorInterface
   let isNew = false
@@ -486,7 +493,6 @@ export function setAggregatorInterface(
   }
   let answer = aggContract.latestAnswer()
   let timestamp = aggContract.latestTimestamp()
-  let tx = getTransactionByData(transaction, block, logIndex) as Transaction
   agg.price = convertTokenToDecimal(answer, agg.decimals)
   agg.oracleUpdatedAt = timestamp
   agg.tx = tx.id
@@ -494,6 +500,14 @@ export function setAggregatorInterface(
     AggregatorInterfaceTemplate.create(Address.fromString(aggregator.toHexString()))
   }
   agg.save()
+
+  if (setAggProxy) {
+    let proxyData = new AggregatorProxy(proxy.toHexString()) as AggregatorProxy
+    proxyData.tx = tx.id
+    proxyData.aggregator = aggregator.toHexString()
+    proxyData.save()
+  }
+
   return agg
 }
 

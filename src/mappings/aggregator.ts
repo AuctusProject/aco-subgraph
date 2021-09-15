@@ -2,7 +2,7 @@ import { ethereum, BigInt } from '@graphprotocol/graph-ts'
 import { SetAggregator } from '../types/templates/ACOAssetConverterHelper/ACOAssetConverterHelper'
 import { ConfirmAggregatorCall } from '../types/templates/AggregatorProxy/AggregatorProxy'
 import { AnswerUpdated } from '../types/templates/AggregatorInterface/AggregatorInterface'
-import { getTransaction, convertTokenToDecimal, setAggregatorProxy, setAggregatorInterface, ACO_POOL_FACTORY_ADDRESS } from './helpers'
+import { getTransaction, convertTokenToDecimal, setAggregatorProxy, setAggregatorInterface, ACO_POOL_FACTORY_ADDRESS, getTransactionByData } from './helpers'
 import { Transaction, AggregatorInterface, AggregatorProxy, ACOPoolFactory2, ACOToken, ACOPool2 } from '../types/schema'
 import { setPoolDynamicData } from './acoPool'
 
@@ -12,7 +12,8 @@ export function handleNewProxyAggregator(event: SetAggregator): void {
 }
 
 export function handleNewAggregator(call: ConfirmAggregatorCall): void {
-  let agg = setAggregatorInterface(call.transaction, call.block, null, call.to, call.inputs._aggregator) as AggregatorInterface
+  let tx = getTransactionByData(call.transaction, call.block, null) as Transaction
+  let agg = setAggregatorInterface(tx, call.to, call.inputs._aggregator, true) as AggregatorInterface
   setNewPriceAggregator(call.block.timestamp, agg)
 }
 
